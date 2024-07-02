@@ -1,0 +1,15 @@
+{
+  "name": "ico-back",
+  "version": "0.0.0",
+  "description": "Backend for ICOgui",
+  "private": true,
+  "scripts": {
+    "install": "pip install -r requirements.txt",
+    "build": "pyinstaller api.py --onefile --add-data=\".env:.\"",
+    "dev": "fastapi dev api.py"
+  },
+  "author": {
+    "name": "Moritz Breurather",
+    "email": "breurather@ift.at"
+  }
+}
