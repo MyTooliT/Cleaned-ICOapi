@@ -14,3 +14,8 @@ def ping():
 def delay():
     time.sleep(1)
     return "OK"
+
+
+@router.options("*", status_code=status.HTTP_200_OK)
+def options():
+    return "OK"

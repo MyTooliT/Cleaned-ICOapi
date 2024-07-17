@@ -9,6 +9,7 @@ class Device(BaseModel):
 
 class STHDevice(Device):
     rssi: float
+    regex_str: str
 
 
 class STUDevice(Device):
