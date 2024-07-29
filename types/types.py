@@ -1,17 +1,19 @@
 from pydantic import BaseModel
+from mytoolit.can.network import STHDeviceInfo
 
 
-class Device(BaseModel):
-    id: int
-    name: str
-    mac: str
+class STHDeviceResponseModel(BaseModel):
+    """Wrapper for STH Device class implementing Pydantic features"""
 
+    name: str  # The (Bluetooth advertisement) name of the STH
+    device_number: int  # The device number of the STH
+    mac_address: str  # The (Bluetooth) MAC address of the STH
+    rssi: int  # The RSSI of the STH
 
-class STHDevice(Device):
-    rssi: float
-    regex_str: str
-
-
-class STUDevice(Device):
-    pass
-
+    @classmethod
+    def from_network(cls, original_object: STHDeviceInfo):
+        return STHDeviceResponseModel(
+            name=original_object.name,
+            device_number=original_object.device_number,
+            mac_address=original_object.mac_address.format(),
+            rssi=original_object.rssi)
