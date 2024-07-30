@@ -1,4 +1,7 @@
+from typing import List
+
 from pydantic import BaseModel
+from dataclasses import dataclass
 from mytoolit.can.network import STHDeviceInfo
 
 
@@ -17,3 +20,12 @@ class STHDeviceResponseModel(BaseModel):
             device_number=original_object.device_number,
             mac_address=original_object.mac_address.format(),
             rssi=original_object.rssi)
+
+
+@dataclass
+class STUDeviceResponseModel:
+    """Response Model for STU devices"""
+
+    name: str
+    device_number: int
+    mac_address: str
