@@ -29,3 +29,7 @@ class STUDeviceResponseModel:
     name: str
     device_number: int
     mac_address: str
+
+
+class STUName(BaseModel):
+    name: str

@@ -1,8 +1,11 @@
-from fastapi import APIRouter, status, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, status, HTTPException, Body
 from fastapi.responses import JSONResponse, Response
-from ..models.models import STHDeviceResponseModel, STUDeviceResponseModel
+from mytoolit.can.network import NoResponseError
+from ..models.models import STHDeviceResponseModel, STUDeviceResponseModel, STUName
 from ..scripts.sth import get_sth_devices_from_network
-from ..scripts.stu import get_stu_devices
+from ..scripts.stu import get_stu_devices, reset_stu
+from ..scripts.errors import Error
 
 router = APIRouter(
     prefix="/devices",
@@ -40,3 +43,35 @@ async def stu(response: Response) -> list[STUDeviceResponseModel]:
         response.status_code = status.HTTP_204_NO_CONTENT
 
     return devices
+
+
+@router.options('/stu/reset')
+def options():
+    return
+
+
+@router.put(
+    '/stu/reset',
+    response_model=None | Error,
+    status_code=status.HTTP_502_BAD_GATEWAY,
+    responses={
+        204: {
+            "description": "Device was successfully reset."
+        },
+        502: {
+            "content": "application/json",
+            "description": "The CAN Network did not respond. This can either be because the Node is not connected, "
+                           "or the Network is unresponsive."
+        }
+    },
+)
+async def reset(name: Annotated[str, Body(embed=True)], response: Response) -> None | Error:
+    if await reset_stu(name):
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return None
+    else:
+        response.status_code = status.HTTP_502_BAD_GATEWAY
+        return Error(
+            name="NoResponseError",
+            message="CAN Network did not respond."
+        )

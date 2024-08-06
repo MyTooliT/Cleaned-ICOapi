@@ -36,3 +36,12 @@ async def get_stu_devices() -> list[STUDeviceResponseModel]:
             stop = True
 
     return devices
+
+
+async def reset_stu(name: str) -> bool:
+    try:
+        async with Network() as network:
+            await network.reset_node(name)
+            return True
+    except NoResponseError:
+        return False
