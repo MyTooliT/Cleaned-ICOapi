@@ -45,3 +45,21 @@ async def reset_stu(name: str) -> bool:
             return True
     except NoResponseError:
         return False
+
+
+async def enable_ota(name: str) -> bool:
+    try:
+        async with Network() as network:
+            await network.activate_bluetooth(name)
+            return True
+    except NoResponseError:
+        return False
+
+
+async def disable_ota(name: str) -> bool:
+    try:
+        async with Network() as network:
+            await network.deactivate_bluetooth(name)
+            return True
+    except NoResponseError:
+        return False
