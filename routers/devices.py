@@ -36,12 +36,7 @@ async def sth() -> list[STHDeviceResponseModel]:
     },
 )
 async def stu(response: Response) -> list[STUDeviceResponseModel]:
-    devices = await get_stu_devices()
-
-    if len(devices) == 0:
-        response.status_code = status.HTTP_204_NO_CONTENT
-
-    return devices
+    return await get_stu_devices()
 
 
 @router.options('/stu/reset')
