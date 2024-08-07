@@ -73,7 +73,7 @@ async def sth_connect(mac: Annotated[str, Body(embed=True)], response: Response)
         }
     }
 )
-async def sth_disconnect(mac: Annotated[str, Body(embed=True)], response: Response) -> None | Error:
+async def sth_disconnect(response: Response) -> None:
     # Note: since there is no disconnect method on the Network class, we just disable BT on the STU.
     await disconnect_sth_devices()
 
