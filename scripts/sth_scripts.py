@@ -5,6 +5,8 @@ from typing import List
 from mytoolit.can import Network
 from mytoolit.can.network import STHDeviceInfo
 
+from ..scripts.stu_scripts import get_stu_devices
+
 
 async def get_sth_devices_from_network() -> List[STHDeviceInfo]:
     """Print a list of available sensor devices"""
@@ -28,3 +30,18 @@ async def get_sth_devices_from_network() -> List[STHDeviceInfo]:
             await sleep(0.5)
 
         return sensor_devices
+
+
+async def connect_sth_device_by_mac(mac: str) -> None:
+    """Connect a STH device by a given MAC address"""
+    async with Network() as network:
+        await network.connect_sensor_device(mac)
+
+
+async def disconnect_sth_devices() -> None:
+    """Disconnect a STH device by disabling STU bluetooth"""
+    devices = await get_stu_devices()
+
+    async with Network() as network:
+        for device in devices:
+            await network.deactivate_bluetooth(f"STU {device.device_number}")
