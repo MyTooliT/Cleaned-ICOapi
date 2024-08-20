@@ -98,5 +98,3 @@ async def sth_rename(device_info: STHRenameRequestModel, response: Response) -> 
     except TimeoutError:
         response.status_code = status.HTTP_502_BAD_GATEWAY
         return NoResponseError()
-
-

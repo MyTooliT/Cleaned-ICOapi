@@ -1,9 +1,12 @@
 from time import time
 from asyncio import sleep
 from typing import List
+from functools import partial
 
-from mytoolit.can import Network
 from mytoolit.can.network import STHDeviceInfo
+from mytoolit.can import Network
+from mytoolit.measurement import convert_raw_to_g
+from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
 
 from ..models.models import STHRenameResponseModel
 from ..scripts.stu_scripts import get_stu_devices
@@ -63,3 +66,24 @@ async def rename_sth_device(mac_address: str, new_name: str) -> STHRenameRespons
 
         return STHRenameResponseModel(name=name, mac_address=mac_address.format(), old_name=old_name)
 
+
+async def stream_sth_measurement(mac_address: str) -> list:
+    async with Network() as network:
+        await network.connect_sensor_device(mac_address)
+        sensor_range = await read_acceleration_sensor_range_in_g(network)
+        conversion_to_g = partial(convert_raw_to_g, max_value=sensor_range)
+        measurements = []
+        try:
+            async with network.open_data_stream(first=True, second=True, third=True) as stream:
+                start_time = time()
+                async for data in stream:
+                    data.apply(conversion_to_g)
+                    print(data.first)
+                    #measurements.append(data.first)
+
+                    if time() - start_time >= 10:
+                        break
+        except KeyboardInterrupt:
+            pass
+
+        return measurements
