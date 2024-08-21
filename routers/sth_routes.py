@@ -20,17 +20,10 @@ router = APIRouter(
         200: {
             "content": "application/json",
             "description": "Return the STH Devices reachable"
-        },
-        204: {
-            "content": "application/json",
-            "description": "Indicates no STH Devices in reach"
         }
 },)
-async def sth(response: Response) -> list[STHDeviceResponseModel]:
+async def sth() -> list[STHDeviceResponseModel]:
     devices = await get_sth_devices_from_network()
-    if len(devices) == 0:
-        response.status_code = status.HTTP_204_NO_CONTENT
-        return list()
     return [STHDeviceResponseModel.from_network(device) for device in devices]
 
 
