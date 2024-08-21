@@ -9,11 +9,13 @@ from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
 from time import time
 from typing import Annotated
 
+from starlette.websockets import WebSocketDisconnect
+
 router = FastAPI()
 
 
-@router.websocket('/ws/{mac}')
-async def websocket_endpoint(mac: str, websocket: WebSocket):
+@router.websocket('/ws/{mac}/{acqTime}')
+async def websocket_endpoint(mac: str, acqTime: int, websocket: WebSocket):
     await websocket.accept()
     async with Network() as network:
         await network.connect_sensor_device(mac)
@@ -28,8 +30,8 @@ async def websocket_endpoint(mac: str, websocket: WebSocket):
 
         user_sensor_config = SensorConfig(
             first=1,
-            second=0,
-            third=0,
+            second=2,
+            third=3,
         )
 
         if user_sensor_config.requires_channel_configuration_support():
@@ -57,7 +59,8 @@ async def websocket_endpoint(mac: str, websocket: WebSocket):
                     measurements.append(data.first)
                     await websocket.send_text(data.first.__repr__())
 
-                    if time() - start_time >= 20:
+                    if time() - start_time >= acqTime:
+                        await websocket.close()
                         break
         except KeyboardInterrupt:
             pass
@@ -67,4 +70,7 @@ async def websocket_endpoint(mac: str, websocket: WebSocket):
             print(f"timeout after {len(measurements)}")
         except NoResponseError:
             print(f"timeout after {len(measurements)}")
+        except WebSocketDisconnect:
+            await websocket.close()
 
+    print(len(measurements))
