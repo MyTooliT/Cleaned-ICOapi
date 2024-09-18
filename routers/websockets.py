@@ -55,30 +55,35 @@ async def websocket_endpoint(websocket: WebSocket):
             key: bool(value) for key, value in user_sensor_config.items()
         }
 
-        measurements = []
+        timestamps = []
         try:
             async with network.open_data_stream(**streaming_config) as stream:
-                start_time = time()
                 async for data in stream:
                     data.apply(conversion_to_g)
-                    print(data.first.__repr__())
-                    measurements.append(data.first)
+                    print(data.first)
+                    current = float(data.first.__repr__().split(',')[0].split(' ')[1].split('@')[1])
+                    timestamps.append(current)
                     await websocket.send_text(data.first.__repr__())
 
-                    if time() - start_time >= config.time:
-                        await websocket.close()
+                    if not timestamps[0]:
+                        continue
+
+                    if current - timestamps[0] >= config.time:
                         break
+                await websocket.close()
         except KeyboardInterrupt:
             pass
         except StreamingTimeoutError:
-            print(f"timeout after {len(measurements)}")
+            print("StreamingTimeoutError")
         except TimeoutError:
-            print(f"timeout after {len(measurements)}")
+            print("TimeoutError")
         except NoResponseError:
-            print(f"timeout after {len(measurements)}")
+            print("NoResponseError")
         except WebSocketDisconnect:
             print(f"disconnected")
-        finally:
-            await websocket.close()
+        except UnsupportedFeatureException:
+            print(f"measurement: from {timestamps[0]} to {timestamps[-1]}")
+        except RuntimeError:
+            pass
 
-    print(len(measurements))
+        print(f"measured for {float(timestamps[-1]) - float(timestamps[0])}s")
