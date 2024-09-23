@@ -3,10 +3,9 @@ from netaddr import EUI
 from ..models.models import STUDeviceResponseModel
 
 
-async def get_stu_mac(node: str = 'STU 1') -> EUI | None:
+async def get_stu_mac(network: Network, node: str = 'STU 1') -> EUI | None:
     try:
-        async with Network() as network:
-            return await network.get_mac_address(node)
+        return await network.get_mac_address(node)
 
     except:
         # NOTE: We simply pass here as the consequence for the user is
@@ -14,14 +13,14 @@ async def get_stu_mac(node: str = 'STU 1') -> EUI | None:
         return None
 
 
-async def get_stu_devices() -> list[STUDeviceResponseModel]:
+async def get_stu_devices(network: Network) -> list[STUDeviceResponseModel]:
     stop = False
     index = 1
     devices: list[STUDeviceResponseModel] = []
 
     while not stop:
         try:
-            mac_eui = await get_stu_mac(f'STU {index}')
+            mac_eui = await get_stu_mac(network, f'STU {index}')
             if mac_eui is not None:
                 if mac_eui.format() not in [device.mac_address for device in devices]:
                     dev = STUDeviceResponseModel(
@@ -38,28 +37,25 @@ async def get_stu_devices() -> list[STUDeviceResponseModel]:
     return devices
 
 
-async def reset_stu(name: str) -> bool:
+async def reset_stu(network: Network, name: str) -> bool:
     try:
-        async with Network() as network:
-            await network.reset_node(name)
-            return True
+        await network.reset_node(name)
+        return True
     except NoResponseError:
         return False
 
 
-async def enable_ota(name: str) -> bool:
+async def enable_ota(network: Network, name: str) -> bool:
     try:
-        async with Network() as network:
-            await network.activate_bluetooth(name)
-            return True
+        await network.activate_bluetooth(name)
+        return True
     except NoResponseError:
         return False
 
 
-async def disable_ota(name: str) -> bool:
+async def disable_ota(network: Network, name: str) -> bool:
     try:
-        async with Network() as network:
-            await network.deactivate_bluetooth(name)
-            return True
+        await network.deactivate_bluetooth(name)
+        return True
     except NoResponseError:
         return False

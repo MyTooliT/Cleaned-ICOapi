@@ -1,10 +1,13 @@
-from fastapi import APIRouter, status, Response, Body, Path
 from typing import Annotated
-from mytoolit.can.network import CANInitError
-from mytoolit.can.adc import ADCConfiguration
-from ..models.models import STHDeviceResponseModel, STHRenameRequestModel, STHRenameResponseModel, ADCValues
-from ..scripts.sth_scripts import get_sth_devices_from_network, connect_sth_device_by_mac, disconnect_sth_devices, rename_sth_device, read_sth_adc, write_sth_adc
-from ..scripts.errors import ConnectionTimeoutError, NoResponseError, Error
+
+from fastapi import APIRouter, Body, Path, Response, status, Depends
+from mytoolit.can.network import CANInitError, Network
+
+from ..models.models import ADCValues, STHDeviceResponseModel, STHRenameRequestModel, STHRenameResponseModel
+from ..models.GlobalNetwork import get_network
+from ..scripts.errors import ConnectionTimeoutError, Error, NoResponseError
+from ..scripts.sth_scripts import connect_sth_device_by_mac, disconnect_sth_devices, get_sth_devices_from_network, \
+    read_sth_adc, rename_sth_device, write_sth_adc
 
 router = APIRouter(
     prefix="/sth",
@@ -23,8 +26,8 @@ router = APIRouter(
             "description": "Return the STH Devices reachable"
         }
 },)
-async def sth() -> list[STHDeviceResponseModel]:
-    devices = await get_sth_devices_from_network()
+async def sth(network: Network = Depends(get_network)) -> list[STHDeviceResponseModel]:
+    devices = await get_sth_devices_from_network(network)
     return [STHDeviceResponseModel.from_network(device) for device in devices]
 
 
@@ -42,9 +45,13 @@ async def sth() -> list[STHDeviceResponseModel]:
         }
     }
 )
-async def sth_connect(mac: Annotated[str, Body(embed=True)], response: Response) -> None | Error:
+async def sth_connect(
+    mac: Annotated[str, Body(embed=True)],
+    response: Response,
+    network: Network = Depends(get_network)
+) -> None | ConnectionTimeoutError | NoResponseError:
     try:
-        await connect_sth_device_by_mac(mac)
+        await connect_sth_device_by_mac(network, mac)
     except TimeoutError:
         response.status_code = status.HTTP_404_NOT_FOUND
         return ConnectionTimeoutError()
@@ -67,9 +74,9 @@ async def sth_connect(mac: Annotated[str, Body(embed=True)], response: Response)
         }
     }
 )
-async def sth_disconnect(response: Response) -> None:
+async def sth_disconnect(network: Network = Depends(get_network)) -> None:
     # Note: since there is no disconnect method on the Network class, we just disable BT on the STU.
-    await disconnect_sth_devices()
+    await disconnect_sth_devices(network)
 
 
 @router.put(
@@ -86,9 +93,13 @@ async def sth_disconnect(response: Response) -> None:
         }
     }
 )
-async def sth_rename(device_info: STHRenameRequestModel, response: Response) -> STHRenameResponseModel | NoResponseError:
+async def sth_rename(
+    device_info: STHRenameRequestModel,
+    response: Response,
+    network: Network = Depends(get_network)
+) -> STHRenameResponseModel | NoResponseError:
     try:
-        return await rename_sth_device(device_info.mac_address, device_info.new_name)
+        return await rename_sth_device(network, device_info.mac_address, device_info.new_name)
     except TimeoutError:
         response.status_code = status.HTTP_502_BAD_GATEWAY
         return NoResponseError()
@@ -108,10 +119,13 @@ async def sth_rename(device_info: STHRenameRequestModel, response: Response) -> 
         }
     }
 )
-async def read_adc(mac: Annotated[str, Path(title="MAC Address of the STH")], response: Response) -> ADCValues | ConnectionTimeoutError:
-    print(mac)
+async def read_adc(
+    mac: Annotated[str, Path(title="MAC Address of the STH")],
+    response: Response,
+    network: Network = Depends(get_network)
+) -> ADCValues | ConnectionTimeoutError:
     try:
-        values = await read_sth_adc(mac)
+        values = await read_sth_adc(network, mac)
         return ADCValues(**values)
     except Error:
         response.status_code = status.HTTP_502_BAD_GATEWAY
@@ -132,9 +146,14 @@ async def read_adc(mac: Annotated[str, Path(title="MAC Address of the STH")], re
         }
     }
 )
-async def write_adc(mac: Annotated[str, Body(embed=True)], config: ADCValues, response: Response) -> None | ConnectionTimeoutError:
+async def write_adc(
+    mac: Annotated[str, Body(embed=True)],
+    config: ADCValues,
+    response: Response,
+    network: Network = Depends(get_network)
+) -> None | ConnectionTimeoutError:
     try:
-        await write_sth_adc(mac, config)
+        await write_sth_adc(network, mac, config)
     except Error:
         response.status_code = status.HTTP_502_BAD_GATEWAY
         return ConnectionTimeoutError()
