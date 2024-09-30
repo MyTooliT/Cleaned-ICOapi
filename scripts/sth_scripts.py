@@ -87,7 +87,7 @@ async def stream_sth_measurement(mac_address: str) -> list:
 
 
 async def read_sth_adc(network: Network, mac_address: str) -> ADCConfiguration | NetworkError:
-    if not network.is_connected():
+    if not await network.is_connected():
         return NetworkError()
     return await network.read_adc_configuration()
 
