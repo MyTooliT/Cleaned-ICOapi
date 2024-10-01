@@ -1,6 +1,6 @@
 from fastapi import WebSocket, APIRouter, Depends
 from functools import partial
-from json import JSONEncoder
+from icolyzer import iftlibrary
 from mytoolit.can import Network, NoResponseError, UnsupportedFeatureException
 from mytoolit.can.adc import ADCConfiguration
 from mytoolit.can.streaming import StreamingTimeoutError
@@ -24,7 +24,7 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
         config = WSMetaData(**data)
         received_init = True
 
-    #await network.connect_sensor_device(config.mac)
+    print(config)
 
     adc_config = ADCConfiguration(
         prescaler=2,
@@ -58,19 +58,40 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
     timestamps = []
     try:
         async with network.open_data_stream(**streaming_config) as stream:
+            ift_relevant_channel = []
+            ift_timestamps = []
             async for data in stream:
                 data.apply(conversion_to_g)
                 current = data.first[0].timestamp
                 timestamps.append(current)
+
+                ift_values = []
+
+                if config.ift_requested:
+                    ift_timestamps.append(current)
+
+                    if config.ift_channel == 'first':
+                        ift_relevant_channel.append(data.first[0].value.magnitude)
+                    elif config.ift_channel == 'second':
+                        ift_relevant_channel.append(data.second[0].value.magnitude)
+                    else:
+                        ift_relevant_channel.append(data.third[0].value.magnitude)
+
+                    ift_values = maybe_get_ift_value(ift_relevant_channel, window_length=config.ift_window_width / 1000)
+
                 data_wrapped: DataValueModel = DataValueModel(
                     first=data.first[0].value.magnitude if data.first else None,
                     second=data.second[0].value.magnitude if data.second else None,
                     third=data.third[0].value.magnitude if data.third else None,
+                    ift=create_objects(ift_timestamps, ift_values, timestamps[0]) if ift_values is not None else None,
                     counter=data.first[0].counter,
                     timestamp=current
                 )
-                print(data_wrapped)
                 await websocket.send_json(data_wrapped.model_dump())
+
+                if ift_values is not None:
+                    ift_relevant_channel.clear()
+                    ift_timestamps.clear()
 
                 if not timestamps[0]:
                     continue
@@ -93,4 +114,31 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
     except RuntimeError:
         pass
 
-    print(f"measured for {float(timestamps[-1]) - float(timestamps[0])}s")
+    print(f"measured for {float(timestamps[-1]) - float(timestamps[0])}s resulting in {len(timestamps) / (float(timestamps[-1]) - float(timestamps[0]))}Hz")
+
+
+def create_objects(timestamps, ift_first, first_timestamp) -> list[dict[str, float]]:
+    if len(timestamps) != len(ift_first):
+        raise ValueError("Both arrays must have the same length")
+
+    result = [{'x': t, 'y': i} for t, i in zip(delta_from_timestamps(timestamps, first_timestamp), ift_first)]
+    return result
+
+
+def delta_from_timestamps(timestamps: list[float], first_timestamp: float) -> list[float]:
+    ret: list[float] = []
+    for i in range(len(timestamps) - 1):
+        ret.append(timestamps[i] - first_timestamp)
+
+    return ret
+
+
+def maybe_get_ift_value(samples, sample_frequency=9524/3, window_length=0.15) -> list[float] | None:
+    if (
+            (len(samples) <= 0.6 * sample_frequency) or
+            (sample_frequency < 200) or
+            (window_length < 0.005) or
+            (window_length > 1)
+    ):
+        return None
+    return iftlibrary.ift_value(samples, sample_frequency, window_length)

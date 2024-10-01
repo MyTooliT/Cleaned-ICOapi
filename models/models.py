@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from json import JSONEncoder
 from pydantic import BaseModel
 from dataclasses import dataclass
@@ -56,6 +56,9 @@ class WSMetaData:
     first: int
     second: int
     third: int
+    ift_requested: bool
+    ift_channel: Union["first", "second", "third"]
+    ift_window_width: int
 
 
 @dataclass
@@ -75,4 +78,5 @@ class DataValueModel(BaseModel, JSONEncoder):
     first: float | None
     second: float | None
     third: float | None
+    ift: list | None
     counter: int
