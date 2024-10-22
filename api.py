@@ -7,7 +7,6 @@ from routers import stu_routes, sth_routes, common, websockets
 from models.GlobalNetwork import NetworkSingleton
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -45,10 +44,17 @@ async def live_websocket(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
+    from os import getenv
+    from dotenv import load_dotenv
+
+    load_dotenv(dotenv_path='../ico-front/.env')
+    PORT = int(getenv("VITE_API_PORT"))
+    HOST = getenv("VITE_API_HOSTNAME")
+
     uvicorn.run(
         "api:app",
-        host="0.0.0.0",
-        port=8000,
+        host=HOST,
+        port=PORT,
         log_level="debug",
         reload=True,
     )
