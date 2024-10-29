@@ -55,5 +55,4 @@ if __name__ == "__main__":
         "api:app",
         host=HOST,
         port=PORT,
-        log_level="debug",
     )
