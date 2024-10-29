@@ -10,7 +10,7 @@ from icolyzer import iftlibrary
 from models.models import WSMetaData
 
 
-async def setup_adc(network: Network, instructions: WSMetaData) -> None:
+async def setup_adc(network: Network, instructions: WSMetaData) -> int:
     """
     Write ADC configuration to holder. Currently only supports default values.
 
@@ -25,7 +25,11 @@ async def setup_adc(network: Network, instructions: WSMetaData) -> None:
         oversampling_rate=64
     )
     await network.write_adc_configuration(**adc_config)
-    print(f"Sample Rate: {adc_config.sample_rate()} Hz")
+
+    sample_rate = adc_config.sample_rate()
+    print(f"Sample Rate: {sample_rate} Hz")
+
+    return sample_rate
 
 
 async def write_sensor_config_if_required(

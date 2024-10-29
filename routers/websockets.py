@@ -25,7 +25,7 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
         received_init = True
 
     # Write ADC configuration to holder
-    await setup_adc(network, instructions)
+    sample_rate = await setup_adc(network, instructions)
 
     # Create a SensorConfiguration and a StreamingConfiguration object
     # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g. that 'first' -> channel 3.
@@ -50,6 +50,8 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
 
             timestamps = []
             ift_relevant_channel = []
+            counter = 0
+            data_collected_for_send: list = []
 
             async for data, _ in stream:
                 # `data` here represents a single measurement frame from the holder.
@@ -76,7 +78,14 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
                     counter=data.counter,
                     timestamp=data.timestamp
                 )
-                await websocket.send_json(data_to_send.model_dump())
+
+                if counter >= (sample_rate // 60):
+                    await websocket.send_json(data_collected_for_send)
+                    data_collected_for_send.clear()
+                    counter = 0
+                else:
+                    data_collected_for_send.append(data_to_send.model_dump())
+                    counter += 1
 
                 # Exit condition
                 if not timestamps[0]:
