@@ -107,7 +107,7 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
                     counter=1,
                     timestamp=1
                 )
-                await websocket.send_json(ift_wrapped.model_dump())
+                await websocket.send_json([ift_wrapped.model_dump()])
 
             # Close websocket.
             await websocket.close()
