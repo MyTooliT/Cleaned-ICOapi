@@ -92,3 +92,13 @@ class DataValueModel(BaseModel, JSONEncoder):
     third: float | None
     ift: list | None
     counter: int
+
+
+@dataclass
+class MeasurementFileDetails:
+    """Data model for measurement files"""
+
+    name: str
+    created: str
+    size: int
+
