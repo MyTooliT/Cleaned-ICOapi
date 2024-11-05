@@ -46,15 +46,17 @@ async def live_websocket(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    from os import getenv
+    from os import getenv, path
     from dotenv import load_dotenv
 
     load_dotenv(dotenv_path='../ico-front/.env')
     PORT = int(getenv("VITE_API_PORT"))
     HOST = getenv("VITE_API_HOSTNAME")
 
-    PATH = getenv("VITE_BACKEND_MEASUREMENT_DIR")
-    ensure_folder_exists(PATH)
+    local_appdata = getenv("LOCALAPPDATA")
+    measurement_dir = getenv("VITE_BACKEND_MEASUREMENT_DIR")
+    full_path = path.join(local_appdata, measurement_dir)
+    ensure_folder_exists(full_path)
 
     uvicorn.run(
         "api:app",
