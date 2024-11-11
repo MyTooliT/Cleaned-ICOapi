@@ -64,7 +64,7 @@ class WSMetaData:
     """
 
     mac: str
-    time: int
+    time: int | None
     first: int
     second: int
     third: int

@@ -121,8 +121,9 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
                         continue
 
                     # Exit condition
-                    if data.timestamp - timestamps[0] >= instructions.time:
-                        break
+                    if instructions.time is not None:
+                        if data.timestamp - timestamps[0] >= instructions.time:
+                            break
 
                 # Send IFT value values at once after measurement is finished.
                 if instructions.ift_requested:
