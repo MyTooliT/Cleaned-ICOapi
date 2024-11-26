@@ -14,7 +14,7 @@ from starlette.websockets import WebSocketDisconnect
 from models.models import WSMetaData, DataValueModel
 from models.GlobalNetwork import get_network
 from scripts.measurement import write_sensor_config_if_required, get_conversion_function, get_measurement_indices, create_objects, maybe_get_ift_value, setup_adc
-
+from routers.file_routes import get_measurement_dir
 from pathlib import Path
 from os import getenv
 
@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 @router.websocket('/ws/measure')
-async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(get_network)) -> FileResponse | None:
+async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(get_network), measurement_dir: str = Depends(get_measurement_dir)) -> FileResponse | None:
     # Await initial WS acceptance
     await websocket.accept()
 
@@ -58,17 +58,12 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
     # Get sensor range for metadata in HDF5 file.
     sensor_range = await read_acceleration_sensor_range_in_g(network)
 
-    # Get .env variable for measurement directory
-    local_appdata_dir = getenv("LOCALAPPDATA")
-    measurement_dir = getenv("VITE_BACKEND_MEASUREMENT_DIR")
-    full_path = os.path.join(local_appdata_dir, measurement_dir)
-
     try:
         async with network.open_data_stream(streaming_configuration) as stream:
 
             name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-            with Storage(Path(f'{full_path}/{name}.hdf5'), streaming_configuration) as storage:
+            with Storage(Path(f'{measurement_dir}/{name}.hdf5'), streaming_configuration) as storage:
 
                 storage.add_acceleration_meta(
                     "Sensor_Range", f"± {sensor_range / 2} g₀"
