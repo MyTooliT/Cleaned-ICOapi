@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mytoolit.can.network import CANInitError
 from starlette.websockets import WebSocket
 from contextlib import asynccontextmanager
 
@@ -15,7 +16,10 @@ async def lifespan(app: FastAPI):
     Anything before <yield> will be run on startup; everything after on shutdown.
     See https://fastapi.tiangolo.com/advanced/events/#lifespan
     """
-    await NetworkSingleton.create_instance_if_none()
+    try:
+        await NetworkSingleton.create_instance_if_none()
+    except CANInitError:
+        print("Error initializing CAN network. CAN adapter may not be connected.")
     yield
     await NetworkSingleton.close_instance()
 
@@ -63,8 +67,9 @@ if __name__ == "__main__":
     # This is system-wide on Windows and thus not dependent on .env
     local_appdata = getenv("LOCALAPPDATA")
 
-    full_path = path.join(local_appdata, measurement_dir)
-    ensure_folder_exists(full_path)
+    # Check / Create measurements path
+    full_measurement_path = path.join(local_appdata, measurement_dir)
+    ensure_folder_exists(full_measurement_path)
 
     uvicorn.run(
         "api:app",
