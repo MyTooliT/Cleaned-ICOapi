@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 import os
 from datetime import datetime
 from models.models import MeasurementFileDetails
-from scripts.file_handling import get_measurement_dir, tries_to_traverse_directory
+from scripts.file_handling import get_measurement_dir, is_dangerous_filename
 
 router = APIRouter(prefix="/files")
 
@@ -36,9 +36,10 @@ async def list_files(measurement_dir: str = Depends(get_measurement_dir)) -> lis
 @router.get("/{name}")
 async def download_file(name: str, measurement_dir: str = Depends(get_measurement_dir)):
 
-    # Prevent directory traversal
-    if tries_to_traverse_directory(name):
-        raise HTTPException(status_code=405, detail="Method not allowed")
+    # Sanitization
+    danger, cause = is_dangerous_filename(name)
+    if danger:
+        raise HTTPException(status_code=405, detail=f"Method not allowed: {cause}")
 
     full_path = os.path.join(measurement_dir, name)
     print(full_path)
@@ -50,9 +51,10 @@ async def download_file(name: str, measurement_dir: str = Depends(get_measuremen
 @router.delete("/{name}")
 async def delete_file(name: str, measurement_dir: str = Depends(get_measurement_dir)):
 
-    # Prevent directory traversal
-    if tries_to_traverse_directory(name):
-        raise HTTPException(status_code=405, detail="Method not allowed")
+    # Sanitization
+    danger, cause = is_dangerous_filename(name)
+    if danger:
+        raise HTTPException(status_code=405, detail=f"Method not allowed: {cause}")
 
     full_path = os.path.join(measurement_dir, name)
     if os.path.isfile(full_path):

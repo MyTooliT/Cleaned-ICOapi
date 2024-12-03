@@ -1,5 +1,6 @@
 import os
 from os import PathLike
+from typing import Tuple, TypedDict
 
 from dotenv import load_dotenv
 
@@ -50,3 +51,20 @@ def tries_to_traverse_directory(received_filename: str | PathLike) -> bool:
             return True
 
     return False
+
+
+def is_dangerous_filename(filename: str) -> Tuple[bool, str | None]:
+    """
+    Tries to determine if a filename is dangerous.
+    Mainly by focussing on two aspects:
+    - Is there an attempt to traverse directories
+    - Is the *.hdf5 ending present in the filename
+    """
+
+    if tries_to_traverse_directory(filename):
+        return True, "Tried to traverse directories"
+
+    if not filename.endswith(".hdf5"):
+        return True, "Tried to download non-HDF5-file"
+
+    return False, None
