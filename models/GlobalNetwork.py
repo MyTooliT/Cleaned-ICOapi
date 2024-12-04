@@ -38,6 +38,10 @@ class NetworkSingleton:
                 print(f"Shut down Network instance with ID <{id(cls._instance)}>")
                 cls._instance = None
 
+    @classmethod
+    def has_instance(cls):
+        return cls._instance is not None
+
 
 async def get_network() -> Network:
     network = await NetworkSingleton.get_instance()

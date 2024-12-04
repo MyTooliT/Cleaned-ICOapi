@@ -3,13 +3,14 @@ import time
 from fastapi import APIRouter, status
 
 from models.GlobalNetwork import NetworkSingleton
+from models.models import APIStateModel
 
 router = APIRouter()
 
 
 @router.get("/ping", status_code=status.HTTP_200_OK)
-def ping():
-    return "OK"
+def ping() -> APIStateModel:
+    return APIStateModel(can_ready=NetworkSingleton.has_instance())
 
 
 @router.get("/delay", status_code=status.HTTP_200_OK)

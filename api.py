@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mytoolit.can.network import CANInitError
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 
 from routers import stu_routes, sth_routes, common, websockets, file_routes
 from models.GlobalNetwork import NetworkSingleton
@@ -43,9 +44,7 @@ app.add_middleware(
 )
 
 
-@app.websocket("/live")
-async def live_websocket(websocket: WebSocket):
-    await websocket.accept()
+
 
 
 if __name__ == "__main__":

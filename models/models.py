@@ -102,3 +102,9 @@ class MeasurementFileDetails:
     created: str
     size: int
 
+
+@dataclass
+class APIStateModel:
+    """Data model for API state"""
+    can_ready: bool
+
