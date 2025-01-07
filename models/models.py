@@ -136,6 +136,7 @@ class Dataset:
 class ParsedMeasurement:
     """Data model for parsed measurement for analyze tab"""
 
+    name: str
     counter: list[int]
     timestamp: list[float]
     datasets: list[Dataset]

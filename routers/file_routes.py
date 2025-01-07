@@ -6,6 +6,9 @@ from fastapi.params import Depends
 from fastapi.responses import FileResponse
 import os
 from datetime import datetime
+
+from starlette.responses import PlainTextResponse
+
 from models.models import Dataset, DiskCapacity, FileListResponseModel, MeasurementFileDetails, ParsedMeasurement
 from scripts.file_handling import get_disk_space_in_gb, get_drive_or_root_path, get_measurement_dir, \
     get_suffixed_filename, is_dangerous_filename
@@ -94,6 +97,7 @@ async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measur
         datasets.__delitem__("counter")
 
         return ParsedMeasurement(
+            name=name,
             counter=df_dict["counter"],
             timestamp=df_dict["timestamp"],
             datasets=[Dataset(name=key, data=values) for key, values in datasets.items()],
@@ -104,7 +108,7 @@ async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measur
 
 
 @router.post("/analyze")
-async def post_analyzed_file(file: UploadFile, measurement_dir: str = Depends(get_measurement_dir)) -> ParsedMeasurement:
+async def post_analyzed_file(file: UploadFile, measurement_dir: str = Depends(get_measurement_dir)) -> PlainTextResponse:
 
     filename = get_suffixed_filename(file.filename, measurement_dir)
 
@@ -113,25 +117,7 @@ async def post_analyzed_file(file: UploadFile, measurement_dir: str = Depends(ge
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
-    data = pd.read_hdf(file_path, key="acceleration")
-
-    try:
-        df = ensure_dataframe_with_columns(data, {"counter", "timestamp", "x"})
-    except TypeError:
-        raise HTTPException(status_code=404, detail="File not readable")
-    except ValueError:
-        raise HTTPException(status_code=404, detail=f"Missing data columns")
-
-    df_dict = df.to_dict(orient="list")
-    datasets = df_dict.copy()
-    datasets.__delitem__("timestamp")
-    datasets.__delitem__("counter")
-
-    return ParsedMeasurement(
-        counter=df_dict["counter"],
-        timestamp=df_dict["timestamp"],
-        datasets=[Dataset(name=key, data=values) for key, values in datasets.items()],
-    )
+    return PlainTextResponse(filename)
 
 def ensure_dataframe_with_columns(df, required_columns) -> pd.DataFrame:
     """
