@@ -1,12 +1,12 @@
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, status, Body, Depends
 from fastapi.responses import Response
-from mytoolit.can import ErrorResponseError
 from mytoolit.can.network import Network
 from models.models import STUDeviceResponseModel
 from models.GlobalNetwork import get_network
 from scripts.stu_scripts import get_stu_devices, reset_stu, enable_ota, disable_ota
 from scripts.errors import NoResponseError
+import mytoolit.can
 
 router = APIRouter(
     prefix="/stu",
@@ -93,7 +93,7 @@ async def stu_disable_ota(
 async def stu_connected(name: Annotated[str, Body(embed=True)], network: Network = Depends(get_network)):
     try:
         return await network.is_connected(name)
-    except NoResponseError:
+    except mytoolit.can.network.NoResponseError:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="No response from CAN network.")
-    except ErrorResponseError:
+    except mytoolit.can.network.ErrorResponseError:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Error response from CAN network.")

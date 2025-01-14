@@ -3,7 +3,7 @@ from asyncio import sleep
 from typing import List
 from functools import partial
 
-from mytoolit.can.network import STHDeviceInfo
+from mytoolit.can.network import STHDeviceInfo, NoResponseError
 from mytoolit.can import Network, NetworkError
 from mytoolit.can.adc import ADCConfiguration
 from mytoolit.measurement import convert_raw_to_g
@@ -11,7 +11,6 @@ from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
 
 from models.models import STHRenameResponseModel, ADCValues
 from scripts.stu_scripts import get_stu_devices
-from scripts.errors import NoResponseError
 
 
 async def get_sth_devices_from_network(network: Network) -> List[STHDeviceInfo]:
@@ -25,14 +24,17 @@ async def get_sth_devices_from_network(network: Network) -> List[STHDeviceInfo]:
     # - Subsequent retries should provide all available sensor devices
     # - We wait until the number of sensor devices is larger than 1 and
     #   has not changed between one iteration or the timeout is reached
-    while (
-            len(sensor_devices) <= 0
-            and time() < timeout
-            or len(sensor_devices) != len(sensor_devices_before)
-    ):
-        sensor_devices_before = list(sensor_devices)
-        sensor_devices = await network.get_sensor_devices()
-        await sleep(0.5)
+    try:
+        while (
+                len(sensor_devices) <= 0
+                and time() < timeout
+                or len(sensor_devices) != len(sensor_devices_before)
+        ):
+            sensor_devices_before = list(sensor_devices)
+            sensor_devices = await network.get_sensor_devices()
+            await sleep(0.5)
+    except NoResponseError:
+        pass
 
     return sensor_devices
 
