@@ -124,6 +124,7 @@ class FileListResponseModel:
 class APIStateModel:
     """Data model for API state"""
     can_ready: bool
+    disk_capacity: DiskCapacity
 
 
 @dataclass
