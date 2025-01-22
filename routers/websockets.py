@@ -164,3 +164,5 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
         print(f"UnsupportedFeatureException")
     except RuntimeError:
         print(f"RuntimeError")
+    finally:
+        await websocket.close()
