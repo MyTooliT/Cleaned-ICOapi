@@ -127,14 +127,12 @@ class APIStateModel:
     disk_capacity: DiskCapacity
 
 
-@dataclass
-class Dataset:
+class Dataset(BaseModel, JSONEncoder):
     data: list[float]
     name: str
 
 
-@dataclass
-class ParsedMeasurement:
+class ParsedMeasurement(BaseModel, JSONEncoder):
     """Data model for parsed measurement for analyze tab"""
 
     name: str

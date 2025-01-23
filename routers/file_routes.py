@@ -3,9 +3,13 @@ import re
 import pandas
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.params import Depends
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 from datetime import datetime
+import pandas as pd
+import json
+import asyncio
+from typing import AsyncGenerator
 
 from starlette.responses import PlainTextResponse
 
@@ -76,35 +80,67 @@ async def delete_file(name: str, measurement_dir: str = Depends(get_measurement_
 
 
 @router.get("/analyze/{name}")
-async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measurement_dir)) -> ParsedMeasurement:
-    # Sanitization
+async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measurement_dir)) -> StreamingResponse:
+
     danger, cause = is_dangerous_filename(name)
     if danger:
         raise HTTPException(status_code=405, detail=f"Method not allowed: {cause}")
 
-    if os.path.isfile(os.path.join(measurement_dir, name)):
-        data = pd.read_hdf(os.path.join(measurement_dir, name), key="acceleration")
-        try:
-            df = ensure_dataframe_with_columns(data, {"counter", "timestamp", "x"})
-        except TypeError:
-            raise HTTPException(status_code=404, detail="File not readable")
-        except ValueError:
-            raise HTTPException(status_code=404, detail=f"Missing data columns")
-
-        df_dict = df.to_dict(orient="list")
-        datasets = df_dict.copy()
-        datasets.__delitem__("timestamp")
-        datasets.__delitem__("counter")
-
-        return ParsedMeasurement(
-            name=name,
-            counter=df_dict["counter"],
-            timestamp=df_dict["timestamp"],
-            datasets=[Dataset(name=key, data=values) for key, values in datasets.items()],
-        )
-
-    else:
+    file_path = os.path.join(measurement_dir, name)
+    if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        try:
+            df = pd.read_hdf(file_path, key="acceleration")
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Key 'acceleration' not found in the file")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to read the HDF5 file: {str(e)}")
+
+
+        # Total number of rows for progress tracking
+        total_rows = len(df)
+
+        # Streaming generator function
+        # We approach this as a StreamingResponse because reading, parsing and sending the complete dataset
+        # takes forever
+        async def data_generator() -> AsyncGenerator[str, None]:
+            batch_size = 1000
+            parsed_rows = 0
+
+            for start in range(0, total_rows, batch_size):
+                end = min(start + batch_size, total_rows)
+                batch = df.iloc[start:end:10]
+                batch_counter = batch["counter"].tolist()
+                batch_timestamp = batch["timestamp"].tolist()
+                datasets = batch.drop(columns=["counter", "timestamp"])
+
+                batch_dict = ParsedMeasurement(
+                    name=name,
+                    counter=batch_counter,
+                    timestamp=batch_timestamp,
+                    datasets=[Dataset(name=column, data=batch[column].tolist()) for column in datasets.columns],
+                )
+
+                # Serialize the batch as JSON and yield it
+                yield batch_dict.model_dump_json() + "\n"
+
+                # Update progress
+                parsed_rows += len(batch) * 10
+                progress = parsed_rows / total_rows
+                yield json.dumps({"progress": progress}) + "\n"
+
+                # Simulate async behavior to avoid blocking
+                await asyncio.sleep(0.01)
+
+            # Final completion progress
+            yield json.dumps({"progress": 1.0}) + "\n"
+
+        return StreamingResponse(data_generator(), media_type="application/json")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/analyze")
