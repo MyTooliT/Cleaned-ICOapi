@@ -58,7 +58,7 @@ if __name__ == "__main__":
         HOST = getenv("VITE_API_HOSTNAME")
         DATA_DIR = getenv("VITE_BACKEND_DATA_DIR")
         MEASUREMENT_DIR = getenv("VITE_BACKEND_MEASUREMENT_DIR")
-    
+
     if system() == "Windows":
         DATA_DIR = getenv("LOCALAPPDATA")
 

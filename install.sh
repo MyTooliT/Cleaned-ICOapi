@@ -16,7 +16,7 @@ sudo mkdir -p $INSTALL_DIR
 sudo chown $USER:$USER $INSTALL_DIR
 
 echo "Copying application files..."
-FILES_AND_DIRS=("api.py" "models" "requirements.txt" "routers" "scripts")
+FILES_AND_DIRS=(".env" "api.py" "models" "requirements.txt" "routers" "scripts")
 
 for ITEM in "${FILES_AND_DIRS[@]}"; do
   cp -r "$ITEM" "$INSTALL_DIR"
@@ -28,7 +28,6 @@ python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-
 deactivate
 
 echo "Creating systemd service..."
