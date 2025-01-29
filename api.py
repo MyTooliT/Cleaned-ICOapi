@@ -43,6 +43,7 @@ app.add_middleware(
 
 if __name__ == "__main__":
     import uvicorn
+    from platform import system
     from os import getenv, path
     from dotenv import load_dotenv
 
@@ -51,17 +52,18 @@ if __name__ == "__main__":
     measurement_dir: str = "icogui"
 
 
-    env_found = load_dotenv(dotenv_path='../.env')
+    env_found = load_dotenv(dotenv_path='.env')
     if env_found:
         PORT = int(getenv("VITE_API_PORT"))
         HOST = getenv("VITE_API_HOSTNAME")
-        measurement_dir = getenv("VITE_BACKEND_MEASUREMENT_DIR")
-
-    # This is system-wide on Windows and thus not dependent on .env
-    local_appdata = getenv("LOCALAPPDATA")
+        DATA_DIR = getenv("VITE_BACKEND_DATA_DIR")
+        MEASUREMENT_DIR = getenv("VITE_BACKEND_MEASUREMENT_DIR")
+    
+    if system() == "Windows":
+        DATA_DIR = getenv("LOCALAPPDATA")
 
     # Check / Create measurements path
-    full_measurement_path = path.join(local_appdata, measurement_dir)
+    full_measurement_path = path.join(DATA_DIR, MEASUREMENT_DIR)
     ensure_folder_exists(full_measurement_path)
 
     uvicorn.run(
