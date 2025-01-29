@@ -12,7 +12,7 @@ from models.models import DiskCapacity
 def get_measurement_dir() -> str:
     """To be used for dependency injection."""
     measurement_dir = "icogui"
-    env_loaded = load_dotenv("../ico-front/.env")
+    env_loaded = load_dotenv("../icoclient/.env")
     if env_loaded:
         measurement_dir = os.getenv("VITE_BACKEND_MEASUREMENT_DIR")
     data_dir = ""
