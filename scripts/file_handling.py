@@ -12,17 +12,18 @@ from models.models import DiskCapacity
 def get_measurement_dir() -> str:
     """To be used for dependency injection."""
     measurement_dir = "icogui"
-    env_loaded = load_dotenv("../icoclient/.env")
+    env_loaded = load_dotenv("../.env")
     if env_loaded:
         measurement_dir = os.getenv("VITE_BACKEND_MEASUREMENT_DIR")
-    data_dir = ""
+    else:
+        raise EnvironmentError(".env not set")
 
     if os.name == "nt":
-        print("Found WINDOWS system.")
         data_dir = os.getenv("LOCALAPPDATA")
     elif os.name == "posix":
-        print("Found POSIX system.")
         data_dir = linux_get_preferred_data_dir(measurement_dir)
+    else:
+        raise EnvironmentError("Unsupported operating system")
 
     return os.path.join(data_dir, measurement_dir)
 
