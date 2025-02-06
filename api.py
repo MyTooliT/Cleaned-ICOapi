@@ -6,7 +6,7 @@ from mytoolit.can.network import CANInitError
 from contextlib import asynccontextmanager
 from routers import stu_routes, sth_routes, common, websockets, file_routes
 from models.GlobalNetwork import NetworkSingleton
-from scripts.file_handling import ensure_folder_exists
+from scripts.file_handling import ensure_folder_exists, get_measurement_dir
 
 
 @asynccontextmanager
@@ -53,7 +53,6 @@ if __name__ == "__main__":
     HOST: str = "0.0.0.0"
     measurement_dir: str = "icogui"
 
-
     env_found = load_dotenv(dotenv_path='.env')
     if env_found:
         PORT = int(getenv("VITE_API_PORT"))
@@ -61,12 +60,7 @@ if __name__ == "__main__":
         DATA_DIR = getenv("VITE_BACKEND_DATA_DIR")
         MEASUREMENT_DIR = getenv("VITE_BACKEND_MEASUREMENT_DIR")
 
-    if system() == "Windows":
-        DATA_DIR = getenv("LOCALAPPDATA")
-
-    # Check / Create measurements path
-    full_measurement_path = path.join(DATA_DIR, MEASUREMENT_DIR)
-    ensure_folder_exists(full_measurement_path)
+    ensure_folder_exists(get_measurement_dir())
 
     uvicorn.run(
         "api:app",
