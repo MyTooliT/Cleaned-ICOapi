@@ -39,7 +39,7 @@ async def list_files_and_capacity(measurement_dir: str = Depends(get_measurement
                     created=creation_time
                 )
                 files_info.append(details)
-        return FileListResponseModel(capacity, files_info)
+        return FileListResponseModel(capacity, files_info, measurement_dir)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Directory not found")
     except Exception as e:
