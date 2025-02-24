@@ -118,6 +118,7 @@ class FileListResponseModel:
 
     capacity: DiskCapacity
     files: list[MeasurementFileDetails]
+    directory: str
 
 
 @dataclass
