@@ -4,8 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mytoolit.can.network import CANInitError
 from contextlib import asynccontextmanager
-from routers import stu_routes, sth_routes, common, websockets, file_routes
-from models.GlobalNetwork import NetworkSingleton
+from routers import stu_routes, sth_routes, common, file_routes, measurement_routes
 from scripts.file_handling import ensure_folder_exists, get_measurement_dir
 from models.globals import MeasurementSingleton, NetworkSingleton
 
@@ -31,7 +30,7 @@ app.include_router(prefix='/api/v1', router=stu_routes.router)
 app.include_router(prefix='/api/v1', router=sth_routes.router)
 app.include_router(prefix='/api/v1', router=common.router)
 app.include_router(prefix='/api/v1', router=file_routes.router)
-app.include_router(prefix='', router=websockets.router)
+app.include_router(prefix='/api/v1/measurement', router=measurement_routes.router)
 
 origins = getenv("VITE_API_ORIGINS", "")
 origins = origins.split(",")

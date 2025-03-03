@@ -8,9 +8,9 @@ from mytoolit.can.streaming import StreamingTimeoutError, StreamingConfiguration
 from mytoolit.measurement import Storage
 from mytoolit.measurement.sensor import SensorConfiguration
 from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
-from starlette.websockets import WebSocketDisconnect
-from models.models import WSMetaData, DataValueModel
-from models.GlobalNetwork import get_network
+from starlette.websockets import WebSocketDisconnect, WebSocketState
+from models.models import MeasurementInstructions, DataValueModel
+from models.globals import get_network
 from scripts.measurement import write_sensor_config_if_required, get_conversion_function, get_measurement_indices, create_objects, maybe_get_ift_value, setup_adc
 from routers.file_routes import get_measurement_dir
 from pathlib import Path
@@ -24,11 +24,11 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
     await websocket.accept()
 
     # Await first message from client with measurement information
-    instructions: WSMetaData | None = None
+    instructions: MeasurementInstructions | None = None
     received_init = False
     while not received_init:
         data = await websocket.receive_json()
-        instructions = WSMetaData(**data)
+        instructions = MeasurementInstructions(**data)
         received_init = True
 
     # Write ADC configuration to holder
@@ -165,4 +165,7 @@ async def websocket_endpoint(websocket: WebSocket, network: Network = Depends(ge
     except RuntimeError:
         print(f"RuntimeError")
     finally:
-        await websocket.close()
+        if websocket.application_state is not WebSocketState.DISCONNECTED:
+            await websocket.close()
+
+

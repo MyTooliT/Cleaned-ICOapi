@@ -48,11 +48,12 @@ class STUName(BaseModel):
 
 
 @dataclass
-class WSMetaData:
+class MeasurementInstructions:
     """
     Data model for measurement WS
 
     Attributes:
+        name (str): Custom name
         mac (str): MAC address
         time (int): Measurement time
         first (int): First measurement channel number
@@ -63,13 +64,14 @@ class WSMetaData:
         ift_window_width (int): IFT window width
     """
 
+    name: str | None
     mac: str
     time: int | None
     first: int
     second: int
     third: int
     ift_requested: bool
-    ift_channel: Union["first", "second", "third"]
+    ift_channel: str
     ift_window_width: int
 
 
@@ -140,3 +142,14 @@ class ParsedMeasurement(BaseModel, JSONEncoder):
     counter: list[int]
     timestamp: list[float]
     datasets: list[Dataset]
+
+
+@dataclass
+class MeasurementStatus:
+    running: bool
+    name: Optional[str] = None
+    start_time: Optional[str] = None
+
+@dataclass
+class ControlResponse:
+    message: str
