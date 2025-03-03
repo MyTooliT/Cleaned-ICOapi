@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("/ping", status_code=status.HTTP_200_OK)
-def ping(measurement_state: MeasurementState = Depends(get_measurement_state())) -> APIStateModel:
+def ping(measurement_state: MeasurementState = Depends(get_measurement_state)) -> APIStateModel:
     return APIStateModel(
         can_ready=NetworkSingleton.has_instance(),
         disk_capacity=get_disk_space_in_gb(),

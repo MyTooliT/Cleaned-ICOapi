@@ -143,7 +143,7 @@ class MeasurementStatus:
     name: Optional[str] = None
     start_time: Optional[str] = None
     tool_name: Optional[str] = None
-    tool_mac: Optional[str] = None
+    instructions: Optional[MeasurementInstructions] = None
 
 
 @dataclass

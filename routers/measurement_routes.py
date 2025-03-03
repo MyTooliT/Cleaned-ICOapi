@@ -18,11 +18,15 @@ async def start_measurement(
 ):
     message: str = "Measurement is already running."
     if not measurement_state.running:
+        start = datetime.datetime.now()
         measurement_state.running = True
-        measurement_state.name = instructions.name if instructions.name else datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        measurement_state.start_time = datetime.datetime.now().isoformat()
-        measurement_state.tool_name = await network.get_name(node="STH 1")
-        measurement_state.tool_mac = instructions.mac
+        measurement_state.name = instructions.name if instructions.name else start.strftime("%Y-%m-%d_%H-%M-%S")
+        measurement_state.start_time = start.isoformat()
+        try:
+            measurement_state.tool_name = await network.get_name(node="STH 1")
+        except Exception:
+            measurement_state.tool_name = "noname"
+        measurement_state.instructions = instructions
         measurement_state.task = asyncio.create_task(run_measurement(network, instructions, measurement_state))
 
         message = "Measurement started successfully."
