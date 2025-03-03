@@ -1,7 +1,6 @@
-import time
 from fastapi import APIRouter, status
 
-from models.GlobalNetwork import NetworkSingleton
+from models.globals import NetworkSingleton
 from models.models import APIStateModel
 from scripts.file_handling import get_disk_space_in_gb
 

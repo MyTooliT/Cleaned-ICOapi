@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status, Body, Depends
 from fastapi.responses import Response
 from mytoolit.can.network import Network
 from models.models import STUDeviceResponseModel
-from models.GlobalNetwork import get_network
+from models.globals import get_network
 from scripts.stu_scripts import get_stu_devices, reset_stu, enable_ota, disable_ota
 from scripts.errors import CANResponseError
 import mytoolit.can

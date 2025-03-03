@@ -1,5 +1,7 @@
 import asyncio
+from typing import List
 from mytoolit.can.network import Network
+from starlette.websockets import WebSocket
 
 
 class NetworkSingleton:
@@ -46,3 +48,55 @@ class NetworkSingleton:
 async def get_network() -> Network:
     network = await NetworkSingleton.get_instance()
     return network
+
+
+class MeasurementState:
+    """
+    This class serves as state management for keeping track of ongoing measurements.
+    It should never be instantiated outside the corresponding singleton wrapper.
+    """
+
+    def __init__(self):
+        self.task: asyncio.Task | None = None
+        self.clients: List[WebSocket] = []
+        self.lock = asyncio.Lock()
+        self.running = False
+        self.name: str | None = None
+        self.start_time: str | None = None
+
+    def reset(self):
+        self.task = None
+        self.clients = []
+        self.lock = asyncio.Lock()
+        self.running = False
+        self.name = None
+        self.start_time = None
+
+
+class MeasurementSingleton:
+    """
+    This class serves as a singleton wrapper around the MeasurementState class
+    """
+
+    _instance: MeasurementState | None = None
+
+    @classmethod
+    def create_instance_if_none(cls):
+        if cls._instance is None:
+            cls._instance = MeasurementState()
+            print(f"Created Measurement instance with ID <{id(cls._instance)}>")
+
+    @classmethod
+    def get_instance(cls):
+        cls.create_instance_if_none()
+        print(f"Using Measurement instance with ID <{id(cls._instance)}>")
+        return cls._instance
+
+    @classmethod
+    def clear_clients(cls):
+        cls._instance.clients.clear()
+        print("Cleared clients")
+
+
+def get_measurement_state():
+    return MeasurementSingleton().get_instance()

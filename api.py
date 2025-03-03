@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from routers import stu_routes, sth_routes, common, websockets, file_routes
 from models.GlobalNetwork import NetworkSingleton
 from scripts.file_handling import ensure_folder_exists, get_measurement_dir
+from models.globals import MeasurementSingleton, NetworkSingleton
 
 
 @asynccontextmanager
@@ -17,10 +18,12 @@ async def lifespan(app: FastAPI):
     See https://fastapi.tiangolo.com/advanced/events/#lifespan
     """
     try:
+        MeasurementSingleton.create_instance_if_none()
         await NetworkSingleton.create_instance_if_none()
     except CANInitError:
         print("Error initializing CAN network. CAN adapter may not be connected.")
     yield
+    MeasurementSingleton.clear_clients()
     await NetworkSingleton.close_instance()
 
 app = FastAPI(lifespan=lifespan)
