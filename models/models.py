@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 from json import JSONEncoder
 from pydantic import BaseModel
 from dataclasses import dataclass
@@ -123,13 +123,6 @@ class FileListResponseModel:
     directory: str
 
 
-@dataclass
-class APIStateModel:
-    """Data model for API state"""
-    can_ready: bool
-    disk_capacity: DiskCapacity
-
-
 class Dataset(BaseModel, JSONEncoder):
     data: list[float]
     name: str
@@ -149,7 +142,19 @@ class MeasurementStatus:
     running: bool
     name: Optional[str] = None
     start_time: Optional[str] = None
+    tool_name: Optional[str] = None
+    tool_mac: Optional[str] = None
+
 
 @dataclass
 class ControlResponse:
     message: str
+    data: MeasurementStatus
+
+
+@dataclass
+class APIStateModel:
+    """Data model for API state"""
+    can_ready: bool
+    disk_capacity: DiskCapacity
+    measurement_status: MeasurementStatus

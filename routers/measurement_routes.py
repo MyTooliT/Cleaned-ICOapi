@@ -16,35 +16,39 @@ async def start_measurement(
         network: Network = Depends(get_network),
         measurement_state: MeasurementState = Depends(get_measurement_state)
 ):
-    if measurement_state.running:
-        return ControlResponse(message="Measurement is already running.")
+    message: str = "Measurement is already running."
+    if not measurement_state.running:
+        measurement_state.running = True
+        measurement_state.name = instructions.name if instructions.name else datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        measurement_state.start_time = datetime.datetime.now().isoformat()
+        measurement_state.tool_name = await network.get_name(node="STH 1")
+        measurement_state.tool_mac = instructions.mac
+        measurement_state.task = asyncio.create_task(run_measurement(network, instructions, measurement_state))
 
-    measurement_state.running = True
-    measurement_state.name = instructions.name if instructions.name else datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    measurement_state.start_time = datetime.datetime.now().isoformat()
-    measurement_state.task = asyncio.create_task(run_measurement(network, instructions, measurement_state))
+        message = "Measurement started successfully."
 
-    return ControlResponse(message="Measurement started successfully.")
+    return ControlResponse(message=message, data=measurement_state.get_status())
 
 
 @router.post("/stop", response_model=ControlResponse)
 async def stop_measurement(measurement_state: MeasurementState = Depends(get_measurement_state)):
-    if not measurement_state.running:
-        return ControlResponse(message="No active measurement to stop.")
+    message = "Measurement stopped successfully."
+    data = measurement_state.get_status()
 
-    measurement_state.running = False
+    if not measurement_state.running:
+        message="No active measurement to stop."
+
     if measurement_state.task:
         measurement_state.task.cancel()
-    return ControlResponse(message="Measurement stopped successfully.")
+
+    measurement_state.reset()
+
+    return ControlResponse(message=message, data=data)
 
 
 @router.get("", response_model=MeasurementStatus)
 async def measurement_status(measurement_state: MeasurementState = Depends(get_measurement_state)):
-    return MeasurementStatus(
-        running=measurement_state.running,
-        name=measurement_state.name if measurement_state.running else None,
-        start_time=measurement_state.start_time if measurement_state.running else None
-    )
+    return measurement_state.get_status()
 
 
 @router.websocket("/stream")

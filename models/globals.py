@@ -3,6 +3,8 @@ from typing import List
 from mytoolit.can.network import Network
 from starlette.websockets import WebSocket
 
+from models.models import MeasurementStatus
+
 
 class NetworkSingleton:
     """
@@ -63,6 +65,8 @@ class MeasurementState:
         self.running = False
         self.name: str | None = None
         self.start_time: str | None = None
+        self.tool_name: str | None = None
+        self.tool_mac: str | None = None
 
     def reset(self):
         self.task = None
@@ -71,6 +75,17 @@ class MeasurementState:
         self.running = False
         self.name = None
         self.start_time = None
+        self.tool_name = None
+        self.tool_mac = None
+
+    def get_status(self):
+        return MeasurementStatus(
+            running=self.running,
+            name=self.name,
+            start_time=self.start_time,
+            tool_name=self.tool_name,
+            tool_mac=self.tool_mac
+        )
 
 
 class MeasurementSingleton:
