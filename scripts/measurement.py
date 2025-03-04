@@ -166,6 +166,10 @@ async def run_measurement(
                     # `data` here represents a single measurement frame from the holder.
                     # Apply conversion function
                     data.apply(conversion_to_g)
+
+                    # Convert timestamp to seconds since measurement start -> taking a step out of the client's work
+                    data.timestamp = (data.timestamp - start_time)
+
                     timestamps.append(data.timestamp)
 
                     # Collect relevant channel data if required for IFT value calculation.
