@@ -26,9 +26,10 @@ async def setup_adc(network: Network, instructions: MeasurementInstructions) -> 
     """
 
     adc_config = ADCConfiguration(
-        prescaler=2,
-        acquisition_time=8,
-        oversampling_rate=64
+        prescaler=instructions.adc.prescaler if instructions.adc.prescaler else 2,
+        acquisition_time=instructions.adc.acquisition_time if instructions.adc.acquisition_time else 8,
+        oversampling_rate=instructions.adc.oversampling_rate if instructions.adc.oversampling_rate else 64,
+        reference_voltage=instructions.adc.reference_voltage if instructions.adc.reference_voltage else 3.3,
     )
     await network.write_adc_configuration(**adc_config)
 

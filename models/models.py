@@ -1,3 +1,4 @@
+import dataclasses
 from typing import Optional
 from json import JSONEncoder
 from pydantic import BaseModel
@@ -48,6 +49,16 @@ class STUName(BaseModel):
 
 
 @dataclass
+class ADCValues:
+    """Data model for ADC values"""
+
+    prescaler: Optional[int]
+    acquisition_time: Optional[int]
+    oversampling_rate: Optional[int]
+    reference_voltage: Optional[float]
+
+
+@dataclass
 class MeasurementInstructions:
     """
     Data model for measurement WS
@@ -62,6 +73,7 @@ class MeasurementInstructions:
         ift_requested (bool): IFT value should be calculated
         ift_channel: which channel should be used for IFT value
         ift_window_width (int): IFT window width
+        adc (ADCValues): ADC settings
     """
 
     name: str | None
@@ -73,16 +85,7 @@ class MeasurementInstructions:
     ift_requested: bool
     ift_channel: str
     ift_window_width: int
-
-
-@dataclass
-class ADCValues:
-    """Data model for ADC values"""
-
-    prescaler: Optional[int]
-    acquisition_time: Optional[int]
-    oversampling_rate: Optional[int]
-    reference_voltage: Optional[float]
+    adc: ADCValues | None
 
 
 class DataValueModel(BaseModel, JSONEncoder):
