@@ -105,7 +105,6 @@ class MeasurementSingleton:
     @classmethod
     def get_instance(cls):
         cls.create_instance_if_none()
-        print(f"Using Measurement instance with ID <{id(cls._instance)}>")
         return cls._instance
 
     @classmethod
@@ -128,11 +127,15 @@ class TridentHandler:
         if cls.client is None:
             cls.client = StorageClient(service, username, password, default_bucket)
             print(f"Created Trident Client for service <{service}>")
+        return cls.client
 
     @classmethod
-    def get_client(cls):
+    async def get_client(cls):
+        if cls.client is None:
+            await cls.create_client()
         return cls.client
 
 
-def get_trident_client():
-    return TridentHandler.get_client()
+async def get_trident_client():
+    client = await TridentHandler.get_client()
+    return client
