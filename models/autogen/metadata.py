@@ -10,21 +10,21 @@ class Quantity:
     value: float
     unit: str
 
+class ProcessEnum(str, Enum):
+    MILLING = 'milling'
+    DRILLING = 'drilling'
+    GRINDING = 'grinding'
+    TURNING = 'turning'
+    REAMING = 'reaming'
+    SHAPING = 'shaping'
+    THREAD_CUTTING = 'thread_cutting'
+    THREAD_MILLING = 'thread_milling'
+    THREAD_FORMING = 'thread_forming'
+
 class InstitutionEnum(str, Enum):
     TU_WIEN = 'TU Wien'
     TU_MUENCHEN = 'TU München'
     ETH_ZUERICH = 'ETH Zürich'
-
-class ProcessEnum(str, Enum):
-    MILLING = 'Milling'
-    DRILLING = 'Drilling'
-    GRINDING = 'Grinding'
-    TURNING = 'Turning'
-    REAMING = 'Reaming'
-    SHAPING = 'Shaping'
-    THREAD_CUTTING = 'Thread Cutting'
-    THREAD_MILLING = 'Thread Milling'
-    THREAD_FORMING = 'Thread Forming'
 
 class WorkpieceMaterialEnum(str, Enum):
     S235 = 'S235'

@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from functools import partial
@@ -11,6 +12,7 @@ from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
 from mytoolit.measurement import Storage, convert_raw_to_g
 from icolyzer import iftlibrary
 
+from models.autogen.metadata import METADATA_VERSION
 from scripts.file_handling import get_measurement_dir
 from models.globals import MeasurementState
 from models.models import DataValueModel, MeasurementInstructions
@@ -155,6 +157,14 @@ async def run_measurement(
                     "Sensor_Range", f"± {sensor_range / 2} g₀"
                 )
 
+                if instructions.meta is not None:
+                    meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
+                    storage.add_acceleration_meta(
+                        "metadata", meta_dump
+                    )
+                    storage.add_acceleration_meta(
+                        "metadata_version", METADATA_VERSION
+                    )
 
                 timestamps = []
                 ift_relevant_channel = []

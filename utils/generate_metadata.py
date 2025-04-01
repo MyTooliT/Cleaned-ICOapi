@@ -45,6 +45,9 @@ def determine_field_requirements(config: dict) -> dict:
 
 def generate_enums(config: dict) -> dict:
     enums = {}
+    # ProcessEnum using process keys instead of labels
+    process_ids = [pid for pid in config.get("processes", {}).keys()]
+    enums["process"] = process_ids
     for param_id, param in config.get("parameters", {}).items():
         options = param.get("options")
         if options:
@@ -88,7 +91,7 @@ def generate_unified_dataclass(config: dict, enums: dict, quantities: set) -> st
             optional_fields.append(f"    {key}: Optional[{field_type}] = None")
 
     fields = "\n".join(required_fields + optional_fields)
-    return f"@dataclass\nclass UnifiedMetadata:\n{fields}\n"
+    return f"@dataclass\nclass UnifiedMetadata(:\n{fields}\n"
 
 def main():
     parser = argparse.ArgumentParser()

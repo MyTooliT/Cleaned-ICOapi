@@ -4,6 +4,7 @@ import datetime
 from fastapi import APIRouter, Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
+from models.autogen.metadata import UnifiedMetadata
 from models.models import MeasurementStatus, ControlResponse, MeasurementInstructions
 from models.globals import get_network, get_measurement_state, MeasurementState, Network
 from scripts.measurement import run_measurement
@@ -70,3 +71,12 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         measurement_state.clients.remove(websocket)
         print(f"Client disconnected! {len(measurement_state.clients)} clients")
+
+
+@router.post("/metadata")
+async def submit_metadata(data: UnifiedMetadata):
+    """
+    This should never be accessed. The metadata should be sent on measurement start and not updated.
+    This solely exists to make openAPI parse the UnifiedMetadata class.
+    """
+    raise NotImplementedError()

@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from dataclasses import dataclass
 from mytoolit.can.network import STHDeviceInfo
 
+from models.autogen.metadata import UnifiedMetadata
+
 
 class STHDeviceResponseModel(BaseModel):
     """Wrapper for STH Device class implementing Pydantic features"""
@@ -86,6 +88,7 @@ class MeasurementInstructions:
     ift_channel: str
     ift_window_width: int
     adc: ADCValues | None
+    meta: UnifiedMetadata | None
 
 
 class DataValueModel(BaseModel, JSONEncoder):
