@@ -26,7 +26,7 @@ sudo mkdir -p $INSTALL_DIR
 sudo chown $USER:$USER $INSTALL_DIR
 
 echo "Copying application files..."
-FILES_AND_DIRS=(".env" "api.py" "models" "requirements.txt" "routers" "scripts")
+FILES_AND_DIRS=(".env" "api.py" "models" "requirements.txt" "routers" "scripts" "utils")
 
 for ITEM in "${FILES_AND_DIRS[@]}"; do
   #cp -r "$ITEM" "$INSTALL_DIR"
