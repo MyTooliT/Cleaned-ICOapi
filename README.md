@@ -130,6 +130,7 @@ LOG_USE_COLOR=1
 LOG_PATH="C:\Users\breurather\AppData\Local\icogui\logs"
 LOG_MAX_BYTES=5242880
 LOG_BACKUP_COUNT=5
+LOG_NAME_WITHOUT_EXTENSION=icogui
 ```
 
 ``LOG_LEVEL`` is one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
@@ -145,6 +146,8 @@ LOG_BACKUP_COUNT=5
 - The defaults are:
   - Windows: ``AppData/Local/icogui/logs``
   - Linux: ``~/.local/share/icogui/logs``
+
+``LOG_NAME_WITHOUT_EXTENSION`` sets the name of the logfile. Without any file extension.
 
 ``LOG_MAX_BYETS`` and `LOG_BACKUP_COUNT` determine the maximum size and backup number of the logs.
 

@@ -1,9 +1,11 @@
 import logging
 import os
 import platform
+import re
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-from typing import List
+from typing import List, Optional
 from fastapi import WebSocket
 import asyncio
 import sys
@@ -19,8 +21,10 @@ load_dotenv(".env")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_USE_JSON = os.getenv("LOG_USE_JSON", "0") == "1"
 LOG_USE_COLOR = os.getenv("LOG_USE_COLOR", "0") == "1"
-LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))  # 5 MB default
+LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
 LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
+LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icogui")
+LOG_NAME = f"{LOG_NAME_WITHOUT_EXTENSION}.log"
 
 def get_default_log_path() -> str:
     app_folder = "icogui"
@@ -110,3 +114,19 @@ def setup_logging() -> None:
     logging.getLogger("uvicorn").setLevel(LOG_LEVEL)
     logging.getLogger("uvicorn.error").setLevel(LOG_LEVEL)
     logging.getLogger("uvicorn.access").setLevel(LOG_LEVEL)
+
+
+def parse_timestamps(lines: list[str]) -> tuple[Optional[str], Optional[str]]:
+    ts_pattern = re.compile(r"(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})")
+    timestamps = []
+    for line in lines:
+        match = ts_pattern.search(line)  # ← use .search instead of .match
+        if match:
+            try:
+                ts = datetime.strptime(match.group("ts"), "%Y-%m-%d %H:%M:%S,%f")
+                timestamps.append(ts.isoformat())
+            except ValueError:
+                continue
+    if not timestamps:
+        return None, None
+    return timestamps[0], timestamps[-1]

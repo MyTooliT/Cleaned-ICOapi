@@ -192,7 +192,21 @@ class TridentBucketObject:
 
 @dataclass
 class LogResponse:
-    path: str
-    logs: str
+    filename: str
+    content: str
+
+
+@dataclass
+class LogFileMeta:
+    name: str
+    size: int
+    first_timestamp: Optional[str]
+    last_timestamp: Optional[str]
+
+
+@dataclass
+class LogListResponse:
+    files: List[LogFileMeta]
+    directory: str
     max_bytes: int
     backup_count: int

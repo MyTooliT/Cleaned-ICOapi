@@ -1,35 +1,99 @@
 import os
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException,  Query, WebSocket, WebSocketDisconnect
 from starlette.responses import Response
-
-from models.models import LogResponse
-from utils.logging_setup import log_watchers, LOG_PATH
+import logging
+from models.models import LogFileMeta, LogListResponse, LogResponse
+from utils.logging_setup import log_watchers, LOG_PATH, parse_timestamps, LOG_NAME, LOG_BACKUP_COUNT, LOG_MAX_BYTES
 
 router = APIRouter(
     prefix="/logs",
     tags=["Logs"]
 )
 
-@router.get("", response_model=LogResponse)
-def get_logs(limit: int = 500):
-    with open(LOG_PATH, "r") as f:
-        lines = f.readlines()
-    return LogResponse(
-        path=LOG_PATH,
-        logs="".join(lines[-limit:]),
-        max_bytes=int(os.getenv("LOG_MAX_BYTES"), 0),
-        backup_count=int(os.getenv("LOG_BACKUP_COUNT"), 0)
-    )
+logger = logging.getLogger(__name__)
+
+@router.get("", response_model=LogListResponse)
+def list_logs():
+    base_dir = os.path.dirname(LOG_PATH)
+    log_files = [f for f in os.listdir(base_dir) if f.startswith(LOG_NAME)]
+
+    files = []
+    for name in sorted(log_files):
+        path = os.path.join(base_dir, name)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            first_ts, last_ts = parse_timestamps(lines)
+        except Exception:
+            first_ts = last_ts = None
+
+        try:
+            size=os.path.getsize(path)
+
+            files.append(LogFileMeta(
+                name=name,
+                size=size,
+                first_timestamp=first_ts,
+                last_timestamp=last_ts
+            ))
+        except FileNotFoundError:
+            # This only happens when you change the files manually; and as soon as the logs fill back up it is gone
+            pass
+
+    return LogListResponse(files=files, directory=base_dir, max_bytes=LOG_MAX_BYTES, backup_count=LOG_BACKUP_COUNT)
+
+
+@router.get("/view", response_model=LogResponse)
+def view_log_file(file: str = Query(...), limit: int = Query(0)):
+    base_dir = os.path.dirname(LOG_PATH)
+    safe_base = os.path.abspath(base_dir)
+    requested_path = os.path.abspath(os.path.join(base_dir, file))
+
+    if not requested_path.startswith(safe_base):
+        raise HTTPException(status_code=403, detail="Invalid log file path.")
+
+    if not os.path.isfile(requested_path):
+        raise HTTPException(status_code=404, detail="Log file not found.")
+
+    try:
+        with open(requested_path, "r", encoding="utf-8") as f:
+            if limit > 0:
+                # Efficient line-limiting (no storing the whole file)
+                from collections import deque
+                lines = deque(f, maxlen=limit)
+                content = ''.join(lines)
+            else:
+                content = f.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading log file: {e}")
+
+    return LogResponse(filename=file, content=content)
+
 
 @router.get("/download")
-def download_logs():
-    with open(LOG_PATH, "rb") as f:
-        content = f.read()
+def download_log_file(file: str = Query(...)):
+    base_dir = os.path.dirname(LOG_PATH)
+    safe_base = os.path.abspath(base_dir)
+
+    requested_path = os.path.abspath(os.path.join(base_dir, file))
+
+    if not requested_path.startswith(safe_base):
+        raise HTTPException(status_code=403, detail="Invalid log file path.")
+
+    if not os.path.isfile(requested_path):
+        raise HTTPException(status_code=404, detail="Log file not found.")
+
+    try:
+        with open(requested_path, "rb") as f:
+            content = f.read()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading log file: {e}")
+
     return Response(
         content=content,
         media_type="text/plain",
-        headers={"Content-Disposition": "attachment; filename=icogui.log"}
+        headers={"Content-Disposition": f"attachment; filename={file}"}
     )
 
 @router.websocket("/stream")
