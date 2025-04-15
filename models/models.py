@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional
+from typing import List, Optional
 from json import JSONEncoder
 from pydantic import BaseModel
 from dataclasses import dataclass
@@ -188,3 +188,11 @@ class TridentBucketObject:
     ETag: str
     Size: int
     StorageClass: str
+
+
+@dataclass
+class LogResponse:
+    path: str
+    logs: str
+    max_bytes: int
+    backup_count: int

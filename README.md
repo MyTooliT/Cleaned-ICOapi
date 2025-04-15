@@ -128,6 +128,8 @@ LOG_LEVEL=DEBUG
 LOG_USE_JSON=0
 LOG_USE_COLOR=1
 LOG_PATH="C:\Users\breurather\AppData\Local\icogui\logs"
+LOG_MAX_BYTES=5242880
+LOG_BACKUP_COUNT=5
 ```
 
 ``LOG_LEVEL`` is one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
@@ -143,6 +145,8 @@ LOG_PATH="C:\Users\breurather\AppData\Local\icogui\logs"
 - The defaults are:
   - Windows: ``AppData/Local/icogui/logs``
   - Linux: ``~/.local/share/icogui/logs``
+
+``LOG_MAX_BYETS`` and `LOG_BACKUP_COUNT` determine the maximum size and backup number of the logs.
 
 ## Metadata Type/Class Generation
 
