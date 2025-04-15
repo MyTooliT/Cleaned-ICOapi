@@ -121,6 +121,29 @@ TRIDENT_API_BUCKET="ctd-data-storage"
 TRIDENT_API_BASE_URL="https://iot.ift.tuwien.ac.at/trident"
 ```
 
+### Logging Settings
+
+```
+LOG_LEVEL=DEBUG
+LOG_USE_JSON=0
+LOG_USE_COLOR=1
+LOG_PATH="C:\Users\breurather\AppData\Local\icogui\logs"
+```
+
+``LOG_LEVEL`` is one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
+``LOG_USE_JSON`` formats the logs in plain JSON if set to `1`
+- useful for production logs
+
+``LOG_USE_COLOR`` formats the logs in color if set to `1`
+- useful for local development in a terminal
+
+``LOG_PATH`` overrides the default log location as an absolute path to a directory
+- You **need** to have permissions
+- The defaults are:
+  - Windows: ``AppData/Local/icogui/logs``
+  - Linux: ``~/.local/share/icogui/logs``
+
 ## Metadata Type/Class Generation
 
 To support the usage of arbitrary metadata when creating measurements, a configuration system has been set up. This 
