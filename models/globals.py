@@ -123,29 +123,25 @@ def get_measurement_state():
 class TridentHandler:
     """Singleton Wrapper for the Trident API client"""
 
-    client: StorageClient | None = None
+    _client: StorageClient | None = None
 
     @classmethod
-    async def create_client(cls, service: str, username: str, password: str, default_bucket: str):
-        if cls.client is None:
-            cls.client = StorageClient(service, username, password, default_bucket)
-            print(f"Created Trident Client for service <{service}>")
-        return cls.client
+    def get_client(cls) -> StorageClient:
+        if cls._client is None:
+            service = getenv("TRIDENT_API_BASE_URL")
+            username = getenv("TRIDENT_API_USERNAME")
+            password = getenv("TRIDENT_API_PASSWORD")
+            default_bucket = getenv("TRIDENT_API_BUCKET")
 
-    @classmethod
-    async def get_client(cls):
-        if cls.client is None:
-            await cls.create_client(
-                service=getenv("TRIDENT_API_BASE_URL"),
-                username=getenv("TRIDENT_API_USERNAME"),
-                password=getenv("TRIDENT_API_PASSWORD"),
-                default_bucket=getenv("TRIDENT_API_BUCKET"))
-        return cls.client
+            cls._client = StorageClient(service, username, password, default_bucket)
+            logger.info(f"Created TridentClient for service <{service}>")
+
+        return cls._client
 
 
-async def get_trident_client() -> BaseClient:
+def get_trident_client() -> BaseClient:
     if getenv("TRIDENT_API_ENABLED") == "True":
-        client = await TridentHandler.get_client()
+        client = TridentHandler.get_client()
         return client
     else:
         return NoopClient()

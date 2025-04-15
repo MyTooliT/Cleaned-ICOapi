@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     """
     MeasurementSingleton.create_instance_if_none()
     try:
-        handler = await get_trident_client()
+        handler = get_trident_client()
         handler.authenticate()
 
     except Exception as e:

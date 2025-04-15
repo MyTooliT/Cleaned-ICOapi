@@ -28,18 +28,18 @@ class TridentClient:
             self.session.headers.update({"Authorization": f"Bearer {access_token}"})
             self.session.cookies.set("refresh_token", refresh_token, domain="iot.ift.tuwien.ac.at")
 
-            logger.info("Successfully retrieved access token.")
+            logger.info("Successfully retrieved access and refresh token.")
             return access_token
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error retrieving access token: {e}")
-            raise Exception(f"Failed to retrieve access token.") from e
+            logger.error(f"Error retrieving access and refresh token: {e}")
+            raise Exception(f"Failed to retrieve access and refresh token.") from e
 
-    def _refresh_token(self):
+    def _refresh_with_refresh_token(self):
         """Refresh the access token using the refresh token."""
         refresh_token = self.session.cookies.get("refresh_token", domain="iot.ift.tuwien.ac.at")
         if not refresh_token:
-            logger.error("No refresh token available.")
-            raise Exception("No refresh token available.")
+            logger.error("Refresh token not found when trying to refresh authentication.")
+            raise Exception("Refresh token not found when trying to refresh authentication.")
 
         try:
             response = self.session.post(f"{self.service}/auth/refresh", json={"refresh_token": refresh_token})
@@ -51,10 +51,10 @@ class TridentClient:
 
             self.session.cookies.set("refresh_token", new_refresh_token, domain="iot.ift.tuwien.ac.at")
             self.session.headers.update({"Authorization": f"Bearer {new_access_token}"})
-            logger.info("Access token refreshed successfully.")
+            logger.info("Access and refresh token refreshed successfully.")
             return new_access_token
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error refreshing access token: {e}")
+            logger.error(f"Error refreshing access and refresh token: {e}")
             # raise Exception(f"Failed to refresh access token. Response: {response.text}") from e
             self.session.close()
             self.session = requests.Session()
@@ -74,21 +74,20 @@ class TridentClient:
         self._ensure_auth()
 
     def refresh(self):
-        self._refresh_token()
+        self._refresh_with_refresh_token()
 
     def request(self, method, path, **kwargs):
         """Generic request handler with authentication and retry on token expiration."""
-        self._refresh_token()
+        self._refresh_with_refresh_token()
         self._ensure_auth()
         url = self.service + path
-
 
         try:
             logger.info(f"{method} request for {url}")
             response = self.session.request(method, url, **kwargs)
             if response.status_code == 401:
-                logger.warning("Token expired. Refreshing token...")
-                self._refresh_token()
+                logger.warning("Authentication expired during session. Refreshing...")
+                self._refresh_with_refresh_token()
                 return self.session.request(method, url, **kwargs)  # Retry with new token
 
             response.raise_for_status()
@@ -178,19 +177,19 @@ class StorageClient(BaseClient):
 
 class NoopClient(BaseClient):
     def get_buckets(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <get_buckets>")
+        logger.debug("No cloud connection. Skipped <get_buckets>")
 
     def get_bucket_objects(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <get_bucket_objects>")
+        logger.debug("No cloud connection. Skipped <get_bucket_objects>")
 
     def upload_file(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <upload_file>")
+        logger.debug("No cloud connection. Skipped <upload_file>")
 
     def authenticate(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <authenticate>")
+        logger.debug("No cloud connection. Skipped <authenticate>")
 
     def refresh(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <refresh>")
+        logger.debug("No cloud connection. Skipped <refresh>")
 
     def is_authenticated(self, *args, **kwargs):
-        logger.info("No cloud connection. Skipped <is_authenticated>")
+        logger.debug("No cloud connection. Skipped <is_authenticated>")
