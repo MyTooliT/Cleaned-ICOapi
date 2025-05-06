@@ -61,6 +61,13 @@ class ADCValues:
 
 
 @dataclass
+class MeasurementInstructionChannel:
+    """Data model for measurement instruction channel definition"""
+
+    channel_number: int
+    sensor_id: Optional[str]
+
+@dataclass
 class MeasurementInstructions:
     """
     Data model for measurement WS
@@ -69,9 +76,9 @@ class MeasurementInstructions:
         name (str): Custom name
         mac (str): MAC address
         time (int): Measurement time
-        first (int): First measurement channel number
-        second (int): Second measurement channel number
-        third (int): Third measurement channel number
+        first (MeasurementInstructionChannel): First measurement channel number
+        second (MeasurementInstructionChannel): Second measurement channel number
+        third (MeasurementInstructionChannel): Third measurement channel number
         ift_requested (bool): IFT value should be calculated
         ift_channel: which channel should be used for IFT value
         ift_window_width (int): IFT window width
@@ -81,9 +88,9 @@ class MeasurementInstructions:
     name: str | None
     mac: str
     time: int | None
-    first: int
-    second: int
-    third: int
+    first: MeasurementInstructionChannel
+    second: MeasurementInstructionChannel
+    third: MeasurementInstructionChannel
     ift_requested: bool
     ift_channel: str
     ift_window_width: int

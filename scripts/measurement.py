@@ -157,7 +157,7 @@ async def run_measurement(
     # Create a SensorConfiguration and a StreamingConfiguration object
     # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g. that 'first' -> channel 3.
     # `StreamingConfiguration sets the active channels based on if the channel number is > 0.`
-    sensor_configuration = SensorConfiguration(instructions.first, instructions.second, instructions.third)
+    sensor_configuration = SensorConfiguration(instructions.first.channel_number, instructions.second.channel_number, instructions.third.channel_number)
     streaming_configuration: StreamingConfiguration = StreamingConfiguration(**{
         key: bool(value) for key, value in sensor_configuration.items()
     })
