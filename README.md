@@ -180,6 +180,36 @@ cd utils
 python3 generate_metadata.py --input <input_path> --output <output_path>
 ```
 
+## Measurement Value Conversion / Storage
+
+The used `ICOc` library streams the data as unsigned 16-bit integer values. To get the actual measured physical values, 
+we go through two conversion steps:
+
+### Step 1: 16-bit ADC value to Voltage
+
+The streamed ``uint16`` is a direct linear map from `0 - 2^16` to `0 - V_ref` of the used ADC. This means we can reverse the conversion 
+by inverting the linear map. 
+
+> We will define the coefficients ``k1`` and `d1` as the factor and offset of going from bit-value to voltage respectively.
+
+As the linear map is direct and without an offset, we can set:
+
+```
+d1 = 0
+k1 = (V_ref)/(2^16) in Volt
+```
+
+> **The first conversion only depends on the used reference voltage.**
+
+### Step 2: Voltage to Physical Value
+
+Each used sensor has a datasheet and associated linear coefficients to get from voltage output to the measured physical values.
+
+> We will define ``k2`` and ``d2`` as the linear coefficients of going from voltage to physical measurement.
+
+The API now accepts a ``sensor_id`` which can be used to choose a unique sensor for the conversion and has the current
+IFT channel-sensor-layout as defaults.
+
 # Run
 
 On Linux, if the installation script was used, the service runs automatically - but as-is, without any updates on 

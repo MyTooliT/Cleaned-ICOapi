@@ -14,6 +14,7 @@ from mytoolit.measurement import Storage, convert_raw_to_g
 from icolyzer import iftlibrary
 
 from models.autogen.metadata import METADATA_VERSION
+from scripts.data_handling import get_voltage_from_raw, get_sensor_for_channel, get_sensors
 from scripts.file_handling import get_measurement_dir
 from models.globals import MeasurementState
 from models.models import DataValueModel, MeasurementInstructions
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 async def setup_adc(network: Network, instructions: MeasurementInstructions) -> int:
     """
-    Write ADC configuration to holder. Currently only supports default values.
+    Write ADC configuration to the holder. Currently only supports default values.
 
     :param network: CAN Network instance from API
     :param instructions: client instructions
@@ -50,7 +51,7 @@ async def write_sensor_config_if_required(
     """
     Write holder sensor configuration if required.
     :param network: CAN Network instance from API
-    :param sensor_configuration: configuration of sensors from client
+    :param sensor_configuration: configuration of sensors from the client
     """
     if sensor_configuration.requires_channel_configuration_support():
         try:
@@ -64,7 +65,7 @@ async def write_sensor_config_if_required(
 
 async def get_conversion_function(network: Network) -> partial:
     """
-    Obtain raw to actual value conversion function from network
+    Get raw to actual value conversion function from network
     :param network: CAN Network instance from API
     :return: conversion function as <partial>
     """
@@ -75,7 +76,7 @@ async def get_conversion_function(network: Network) -> partial:
 def get_measurement_indices(streaming_configuration: StreamingConfiguration) -> list[int]:
     """
     Obtain ordered indices from streaming configuration
-    :param streaming_configuration: Selected / Activated channels for measurement
+    :param streaming_configuration: Selected / Activated channels for the measurement
     :return: list containing [first_index, second_index, third_index]
     """
     first_index = 0
@@ -105,7 +106,7 @@ def maybe_get_ift_value(samples: list[float], sample_frequency=9524/3, window_le
     """
     Try to get IFT_value calculated
     :param samples: list of samples for calculation
-    :param sample_frequency: sample frequency of sample list
+    :param sample_frequency: sample frequency of the sample list
     :param window_length: window for sliding calculation
     :return: IFT value list or None if not calculatable
     """
@@ -151,29 +152,23 @@ async def run_measurement(
         instructions: MeasurementInstructions,
         measurement_state: MeasurementState
 ) -> None:
-    # Write ADC configuration to holder
+    # Write ADC configuration to the holder
     sample_rate = await setup_adc(network, instructions)
 
     # Create a SensorConfiguration and a StreamingConfiguration object
-    # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g. that 'first' -> channel 3.
+    # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g., that 'first' -> channel 3.
     # `StreamingConfiguration sets the active channels based on if the channel number is > 0.`
     sensor_configuration = SensorConfiguration(instructions.first.channel_number, instructions.second.channel_number, instructions.third.channel_number)
     streaming_configuration: StreamingConfiguration = StreamingConfiguration(**{
         key: bool(value) for key, value in sensor_configuration.items()
     })
 
-    # Write sensor configuration to holder if possible / necessary.
+    # Write sensor configuration to the holder if possible / necessary.
     await write_sensor_config_if_required(network, sensor_configuration)
-
-    # Create conversion function to apply to data received from stream
-    conversion_to_g: partial = await get_conversion_function(network)
 
     # NOTE: The array data.values only contains the activated channels. This means we need to compute the
     #       index at which each channel is located. This may not be pretty, but it works.
     [first_index, second_index, third_index] = get_measurement_indices(streaming_configuration)
-
-    # Get sensor range for metadata in HDF5 file.
-    sensor_range = await read_acceleration_sensor_range_in_g(network)
 
     timestamps: list[float] = []
     ift_relevant_channel: list[float] = []
@@ -188,7 +183,7 @@ async def run_measurement(
                 logger.info(f"Measurement started for file <{get_measurement_dir()}/{measurement_state.name}.hdf5>")
 
                 storage.add_acceleration_meta(
-                    "Sensor_Range", f"± {sensor_range / 2} g₀"
+                    "conversion", "true"
                 )
 
                 if instructions.meta is not None:
@@ -206,39 +201,55 @@ async def run_measurement(
                 data_collected_for_send: list = []
                 start_time = time.time()
 
+                voltage_scaling = get_voltage_from_raw(instructions.adc.reference_voltage)
+                logger.info(f"ADC reference voltage of {instructions.adc.reference_voltage} results in factor voltage_scaling: {voltage_scaling}")
+
+                first_channel_sensor = get_sensor_for_channel(instructions.first)
+                second_channel_sensor = get_sensor_for_channel(instructions.second)
+                third_channel_sensor = get_sensor_for_channel(instructions.third)
+
                 async for data, _ in stream:
-                    #print(f"sending stuff to {len(measurement_state.clients)} clients")
-                    # `data` here represents a single measurement frame from the holder.
-                    # Apply conversion function
-                    data.apply(conversion_to_g)
 
                     # Convert timestamp to seconds since measurement start -> taking a step out of the client's work
                     data.timestamp = (data.timestamp - start_time)
-
                     timestamps.append(data.timestamp)
 
-                    # Collect relevant channel data if required for IFT value calculation.
-                    if instructions.ift_requested:
-                        if instructions.ift_channel == 'first':
-                            ift_relevant_channel.append(data.values[first_index])
-                        elif instructions.ift_channel == 'second':
-                            ift_relevant_channel.append(data.values[second_index])
-                        else:
-                            ift_relevant_channel.append(data.values[third_index])
+                    storage.add_streaming_data(data)
 
-                    # Send single measurement data frame. IFT value is intentionally blank. This enables us to use the same
-                    # response model for IFT value and single data frames.
                     data_to_send = DataValueModel(
-                        first=data.values[first_index] if streaming_configuration.first else None,
-                        second=data.values[second_index] if streaming_configuration.second else None,
-                        third=data.values[third_index] if streaming_configuration.third else None,
+                        first=None,
+                        second=None,
+                        third=None,
                         ift=None,
                         counter=data.counter,
                         timestamp=data.timestamp,
                         dataloss=None
                     )
 
-                    storage.add_streaming_data(data)
+                    if streaming_configuration.first:
+                        first_channel_voltage = data.values[first_index] * voltage_scaling
+                        first_channel_data = first_channel_sensor.convert_to_phys(first_channel_voltage)
+                        data_to_send.first = first_channel_data
+
+                        if instructions.ift_requested and instructions.ift_channel == "first":
+                            ift_relevant_channel.append(first_channel_data)
+
+                    if streaming_configuration.second:
+                        second_channel_voltage = data.values[second_index] * voltage_scaling
+                        second_channel_data = second_channel_sensor.convert_to_phys(second_channel_voltage)
+                        data_to_send.second = second_channel_data
+
+                        if instructions.ift_requested and instructions.ift_channel == "second":
+                            ift_relevant_channel.append(second_channel_data)
+
+                    if streaming_configuration.third:
+                        third_channel_voltage = data.values[third_index] * voltage_scaling
+                        third_channel_data = third_channel_sensor.convert_to_phys(third_channel_voltage)
+                        data_to_send.third = third_channel_data
+
+                        if instructions.ift_requested and instructions.ift_channel == "third":
+                            ift_relevant_channel.append(third_channel_data)
+
 
                     if counter >= (sample_rate // int(os.getenv("WEBSOCKET_UPDATE_RATE", 60))):
                         for client in measurement_state.clients:
@@ -277,7 +288,7 @@ async def run_measurement(
                     except RuntimeError:
                         logger.warning("Client must be disconnected, passing")
 
-                # Send IFT value values at once after measurement is finished.
+                # Send IFT value values at once after the measurement is finished.
                 if instructions.ift_requested:
                     await send_ift_values(timestamps, ift_relevant_channel, instructions, measurement_state)
                     ift_sent = True
