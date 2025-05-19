@@ -350,4 +350,4 @@ async def run_measurement(
         for client in measurement_state.clients:
             await client.close()
         logger.info(f"Ended measurement and cleared {clients} clients")
-        measurement_state.reset()
+        await measurement_state.reset()

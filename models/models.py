@@ -172,8 +172,7 @@ class ControlResponse:
     data: MeasurementStatus
 
 
-@dataclass
-class SystemStateModel:
+class SystemStateModel(BaseModel, JSONEncoder):
     """Data model for API state"""
     can_ready: bool
     disk_capacity: DiskCapacity

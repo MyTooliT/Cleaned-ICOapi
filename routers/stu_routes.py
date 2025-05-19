@@ -56,7 +56,8 @@ async def stu_reset(
 ) -> None | CANResponseError:
     if await reset_stu(network, name):
         response.status_code = status.HTTP_204_NO_CONTENT
-        measurement_state.reset()
+        await measurement_state.reset()
+        return None
     else:
         response.status_code = status.HTTP_502_BAD_GATEWAY
         return CANResponseError()
