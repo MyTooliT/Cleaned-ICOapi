@@ -49,7 +49,7 @@ async def list_files_and_capacity(
                     upload_timestamp=None
                 )
                 if os.getenv("TRIDENT_API_ENABLED") == "True":
-                    matches = [file for file in cloud_files if file.Key == filename]
+                    matches = [file for file in cloud_files if filename in file.Key]
                     if matches:
                         cloud_details.is_uploaded = True
                         cloud_details.upload_timestamp = matches[0].LastModified
