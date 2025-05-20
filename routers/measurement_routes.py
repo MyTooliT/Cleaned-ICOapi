@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 import logging
+
+import pathvalidate
 from fastapi import APIRouter, Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -23,10 +25,15 @@ async def start_measurement(
         measurement_state: MeasurementState = Depends(get_measurement_state)
 ):
     message: str = "Measurement is already running."
+
     if not measurement_state.running:
         start = datetime.datetime.now()
+        filename = start.strftime("%Y-%m-%d_%H-%M-%S")
+        if instructions.name:
+            sanitized = pathvalidate.sanitize_filename(instructions.name)
+            filename = sanitized + "__" + filename
         measurement_state.running = True
-        measurement_state.name = instructions.name if instructions.name else start.strftime("%Y-%m-%d_%H-%M-%S")
+        measurement_state.name = filename
         measurement_state.start_time = start.isoformat()
         try:
             measurement_state.tool_name = await network.get_name(node="STH 1")
