@@ -26,6 +26,9 @@ class InstitutionEnum(str, Enum):
     TU_MUENCHEN = 'TU München'
     ETH_ZUERICH = 'ETH Zürich'
 
+class ActivityEnum(str, Enum):
+    TOOL_WEAR_MONITORING = 'Tool Wear Monitoring'
+
 class WorkpieceMaterialEnum(str, Enum):
     S235 = 'S235'
     _4140 = '4140'
@@ -50,6 +53,7 @@ class UnifiedMetadata:
     machine: str
     experiment: str
     process: ProcessEnum
+    activity: ActivityEnum
     workpiece_material: WorkpieceMaterialEnum
     cutting_speed: Quantity
     tool_material: ToolMaterialEnum
