@@ -20,7 +20,7 @@ def get_sensors() -> list[Sensor]:
     defaults = [
         Sensor(name="Acceleration 100g", sensor_type="ADXL1001", sensor_id="acc100g_01", unit="g", phys_min=-100, phys_max=100, volt_min=0.33, volt_max=2.97),
         Sensor(name="Acceleration 40g", sensor_type="ADXL358C", sensor_id="acc40g_01", unit="g", phys_min=-40, phys_max=40, volt_min=0.1, volt_max=1.7),
-        Sensor(name="Temperature", sensor_type="ADXL358C", sensor_id="temp_01", unit="°C", phys_min=-440, phys_max=125, volt_min=0.772, volt_max=1.267),
+        Sensor(name="Temperature", sensor_type="ADXL358C", sensor_id="temp_01", unit="°C", phys_min=-40, phys_max=125, volt_min=0.772, volt_max=1.267),
         Sensor(name="Photodiode", sensor_type=None, sensor_id="photo_01", unit="-", phys_min=0, phys_max=1, volt_min=0, volt_max=3.3),
         Sensor(name="Backpack", sensor_type=None, sensor_id="backpack_01", unit="-", phys_min=0, phys_max=1, volt_min=0, volt_max=3.3),
         Sensor(name="Battery Voltage", sensor_type=None, sensor_id="vbat_01", unit="V", phys_min=2.9, phys_max=4.2, volt_min=0.509, volt_max=0.737)
