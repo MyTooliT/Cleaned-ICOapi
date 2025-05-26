@@ -186,7 +186,7 @@ class GeneralMessenger:
             await client.send_json(SystemStateModel(
                 can_ready=NetworkSingleton.has_instance(),
                 disk_capacity=get_disk_space_in_gb(),
-                cloud_status=cloud_ready,
+                cloud_status=bool(cloud_ready),
                 measurement_status=get_measurement_state().get_status()
             ).model_dump())
 

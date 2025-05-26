@@ -23,7 +23,7 @@ def state(measurement_state: MeasurementState = Depends(get_measurement_state), 
         can_ready=NetworkSingleton.has_instance(),
         disk_capacity=get_disk_space_in_gb(),
         measurement_status=measurement_state.get_status(),
-        cloud_status=storage.is_authenticated()
+        cloud_status=bool(storage.is_authenticated())
     )
 
 
