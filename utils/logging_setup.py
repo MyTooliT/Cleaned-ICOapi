@@ -23,12 +23,12 @@ LOG_USE_JSON = os.getenv("LOG_USE_JSON", "0") == "1"
 LOG_USE_COLOR = os.getenv("LOG_USE_COLOR", "0") == "1"
 LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
 LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
-LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icogui")
+LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icodaq")
 LOG_NAME = f"{LOG_NAME_WITHOUT_EXTENSION}.log"
 
 def get_default_log_path() -> str:
-    app_folder = "icogui"
-    file_name = "icogui.log"
+    app_folder = "icodaq"
+    file_name = "icodaq.log"
     if platform.system() == "Windows":
         base = os.getenv("LOCALAPPDATA", str(Path.home()))
     else:

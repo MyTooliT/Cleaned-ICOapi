@@ -92,9 +92,9 @@ These settings determine where the measurement files are stored locally. There a
 **not use together** to remove ambiguity:
 
 ```
-VITE_BACKEND_MEASUREMENT_DIR=icogui
+VITE_BACKEND_MEASUREMENT_DIR=icodaq
 # OR
-VITE_BACKEND_FULL_MEASUREMENT_PATH=C:\Users\breurather\AppData\Local\icogui
+VITE_BACKEND_FULL_MEASUREMENT_PATH=C:\Users\breurather\AppData\Local\icodaq
 ```
 
 `VITE_BACKEND_MEASUREMENT_DIR` expects a single folder name and locates that folder under a certain path
@@ -128,10 +128,10 @@ TRIDENT_API_BUCKET_FOLDER="default"
 LOG_LEVEL=DEBUG
 LOG_USE_JSON=0
 LOG_USE_COLOR=1
-LOG_PATH="C:\Users\breurather\AppData\Local\icogui\logs"
+LOG_PATH="C:\Users\breurather\AppData\Local\icodaq\logs"
 LOG_MAX_BYTES=5242880
 LOG_BACKUP_COUNT=5
-LOG_NAME_WITHOUT_EXTENSION=icogui
+LOG_NAME_WITHOUT_EXTENSION=icodaq
 ```
 
 ``LOG_LEVEL`` is one of `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
@@ -145,8 +145,8 @@ LOG_NAME_WITHOUT_EXTENSION=icogui
 ``LOG_PATH`` overrides the default log location as an absolute path to a directory
 - You **need** to have permissions
 - The defaults are:
-  - Windows: ``AppData/Local/icogui/logs``
-  - Linux: ``~/.local/share/icogui/logs``
+  - Windows: ``AppData/Local/icodaq/logs``
+  - Linux: ``~/.local/share/icodaq/logs``
 
 ``LOG_NAME_WITHOUT_EXTENSION`` sets the name of the logfile. Without any file extension.
 
@@ -172,7 +172,7 @@ cd utils
 python3 generate_metadata.py
 ```
 
-This will look for the ``.yaml`` file in `../icoclient/public/config` folder, which for development, one usually also 
+This will look for the ``.yaml`` file in `../icoweb/public/config` folder, which for development, one usually also 
 has cloned to their local machine in the same directory as this repository. It will put the generated types under 
 `models/autogen/metadata.py`. For customization, run:
 

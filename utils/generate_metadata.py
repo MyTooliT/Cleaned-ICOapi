@@ -97,7 +97,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input",
-        default=str(Path(__file__).resolve().parent.parent.parent / "icoclient" / "public" / "config" / "metadata.yaml"),
+        default=str(Path(__file__).resolve().parent.parent.parent / "icoweb" / "public" / "config" / "metadata.yaml"),
         help="Path to metadata.yaml"
     )
     parser.add_argument(

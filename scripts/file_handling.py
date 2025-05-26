@@ -30,7 +30,7 @@ def get_measurement_dir() -> str:
         logger.info(f"Used full / absolute path for measurements: {full_path}")
         return os.path.abspath(full_path)
     else:
-        measurement_dir = os.getenv("VITE_BACKEND_MEASUREMENT_DIR", "icogui")
+        measurement_dir = os.getenv("VITE_BACKEND_MEASUREMENT_DIR", "icodaq")
 
     # No full path, so combine measurement directory with default location
     if os.name == "nt":
