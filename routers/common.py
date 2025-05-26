@@ -47,19 +47,19 @@ async def state_websocket(
     try:
         # Initial send of data on connect
         await websocket.send_json(SystemStateModel(
-            can_ready=NetworkSingleton.has_instance(),
+            can_ready=bool(NetworkSingleton.has_instance()),
             disk_capacity=get_disk_space_in_gb(),
             measurement_status=measurement_state.get_status(),
-            cloud_status=storage.is_authenticated()
+            cloud_status=bool(storage.is_authenticated())
         ).model_dump())
         while True:
             command = await websocket.receive_text()
             if command == "get_state":
                 await websocket.send_json(SystemStateModel(
-                    can_ready=NetworkSingleton.has_instance(),
+                    can_ready=bool(NetworkSingleton.has_instance()),
                     disk_capacity=get_disk_space_in_gb(),
                     measurement_status=measurement_state.get_status(),
-                    cloud_status=storage.is_authenticated()
+                    cloud_status=bool(storage.is_authenticated())
                 ).model_dump())
                 logger.info("Sent state information data to client upon request.")
     except WebSocketDisconnect:
