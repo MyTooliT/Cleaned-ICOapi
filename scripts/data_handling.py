@@ -12,12 +12,11 @@ from scripts.file_handling import ensure_folder_exists, get_measurement_dir
 
 logger = logging.getLogger(__name__)
 
-def get_voltage_from_raw(v_ref: float) -> float:
-    """Get the conversion factor from bit value to voltage"""
-    return v_ref / 2**16
+def get_sensor_yaml_path():
+    return path.join(path.join(get_measurement_dir(), "config"), "sensors.yaml")
 
-def get_sensors() -> list[Sensor]:
-    defaults = [
+def get_sensor_defaults() -> list[Sensor]:
+    return [
         Sensor(name="Acceleration 100g", sensor_type="ADXL1001", sensor_id="acc100g_01", unit="g", phys_min=-100, phys_max=100, volt_min=0.33, volt_max=2.97),
         Sensor(name="Acceleration 40g", sensor_type="ADXL358C", sensor_id="acc40g_01", unit="g", phys_min=-40, phys_max=40, volt_min=0.1, volt_max=1.7),
         Sensor(name="Temperature", sensor_type="ADXL358C", sensor_id="temp_01", unit="°C", phys_min=-40, phys_max=125, volt_min=0.772, volt_max=1.267),
@@ -26,8 +25,13 @@ def get_sensors() -> list[Sensor]:
         Sensor(name="Battery Voltage", sensor_type=None, sensor_id="vbat_01", unit="V", phys_min=2.9, phys_max=4.2, volt_min=0.509, volt_max=0.737)
     ]
 
-    config_dir = path.join(get_measurement_dir(), "config")
-    file_path=path.join(config_dir, "sensors.yaml")
+def get_voltage_from_raw(v_ref: float) -> float:
+    """Get the conversion factor from bit value to voltage"""
+    return v_ref / 2**16
+
+def get_sensors() -> list[Sensor]:
+    config_dir=path.join(get_measurement_dir(), "config")
+    file_path=get_sensor_yaml_path()
     ensure_folder_exists(config_dir)
 
     try:
@@ -37,11 +41,17 @@ def get_sensors() -> list[Sensor]:
             logger.info(f"Found {len(sensors)} sensors in {file_path}")
             return sensors
     except FileNotFoundError:
-        with open(file_path, "w") as file:
-            default_data = {"sensors": [sensor.dict() for sensor in defaults]}
-            yaml.dump(default_data, file)
-            logger.info(f"File not found. Created new sensor.yaml with {len(defaults)} default sensors.")
+        defaults = get_sensor_defaults()
+        write_sensor_defaults(defaults)
         return defaults
+
+
+def write_sensor_defaults(sensors: list[Sensor]):
+    file_path = get_sensor_yaml_path()
+    with open(file_path, "w") as file:
+        default_data = {"sensors": [sensor.dict() for sensor in sensors]}
+        yaml.dump(default_data, file)
+        logger.info(f"File not found. Created new sensor.yaml with {len(sensors)} default sensors.")
 
 
 def find_sensor_by_id(sensors: List[Sensor], sensor_id: str) -> Optional[Sensor]:
