@@ -8,7 +8,7 @@ from starlette.status import HTTP_502_BAD_GATEWAY
 
 from models.globals import get_trident_client
 from models.models import TridentBucketObject
-from models.trident import StorageClient
+from models.trident import AuthorizationError, HostNotFoundError, StorageClient
 from scripts.file_handling import get_measurement_dir
 
 router = APIRouter(
@@ -33,6 +33,10 @@ async def authenticate(storage: StorageClient = Depends(get_trident_client)):
         storage.authenticate()
     except HTTPException as e:
         logger.error(e)
+    except HostNotFoundError as e:
+        raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail=str(e))
+    except AuthorizationError as e:
+        raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail=str(e))
 
 
 @router.get("")

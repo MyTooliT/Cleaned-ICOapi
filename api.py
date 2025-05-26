@@ -26,8 +26,7 @@ async def lifespan(app: FastAPI):
         handler.authenticate()
 
     except Exception as e:
-        print("Cannot establish Trident connection")
-        print(e)
+        logger.error("Cannot establish Trident connection")
 
     try:
         await NetworkSingleton.create_instance_if_none()

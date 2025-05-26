@@ -1,14 +1,22 @@
 # https://git.ift.tuwien.ac.at/lab/ift/infrastructure/trident-client/-/blob/main/main.py?ref_type=heads
 import json
+import socket
 from http.client import HTTPException
 
 import requests
 import logging
 
+import urllib3.exceptions
+
 from scripts.file_handling import tries_to_traverse_directory
 
 logger = logging.getLogger(__name__)
 
+class HostNotFoundError(HTTPException):
+    """Error for host not found"""
+
+class AuthorizationError(HTTPException):
+    """Error for authorization error"""
 
 class TridentClient:
     def __init__(self, service: str, username: str, password: str):
@@ -34,9 +42,22 @@ class TridentClient:
 
             logger.info("Successfully retrieved access and refresh token.")
             return access_token
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error retrieving access and refresh token: {e}")
+        #except requests.exceptions.RequestException as e:
+            #logger.error(f"Error retrieving access and refresh token: {e}")
             # raise Exception(f"Failed to retrieve access and refresh token.") from e
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection Error: {e}")
+            raise HostNotFoundError("Could not find Trident API under specified address.")
+        except requests.HTTPError as e:
+            logger.error(f"Authorization failed - raised error: {e}")
+            raise AuthorizationError(f"Trident API valid, but authorization failed.") from e
+        except socket.gaierror as e:
+            logger.error(f"Socket failed! raised error: {e}")
+            raise HostNotFoundError(f"Could not find Trident API under specified address.")
+        except Exception as e:
+            logger.error(f"Could not find Trident API under specified address - raised error: {e}")
+            raise HostNotFoundError("Could not find Trident API under specified address.") from e
+
 
     def _refresh_with_refresh_token(self):
         """Refresh the access token using the refresh token."""
