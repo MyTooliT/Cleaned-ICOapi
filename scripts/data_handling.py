@@ -127,7 +127,7 @@ def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> N
         row['name'] = sensor.name
         row['sensor_type'] = sensor.sensor_type if sensor.sensor_type else ''
         row['sensor_id'] = sensor.sensor_id
-        row['unit'] = sensor.unit
+        row['unit'] = sensor.unit.encode()
         row['phys_min'] = sensor.phys_min
         row['phys_max'] = sensor.phys_max
         row['volt_min'] = sensor.volt_min
