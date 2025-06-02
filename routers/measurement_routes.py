@@ -62,6 +62,8 @@ async def stop_measurement(measurement_state: MeasurementState = Depends(get_mea
     if measurement_state.task:
         measurement_state.task.cancel()
 
+    await measurement_state.reset()
+
     return ControlResponse(message=message, data=data)
 
 
