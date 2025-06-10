@@ -23,28 +23,28 @@ class ProcessEnum(str, Enum):
 
 class InstitutionEnum(str, Enum):
     TU_WIEN = 'TU Wien'
-    TU_MUENCHEN = 'TU München'
-    ETH_ZUERICH = 'ETH Zürich'
+    TU_DARMSTADT = 'TU Darmstadt'
 
 class ActivityEnum(str, Enum):
     TOOL_WEAR_MONITORING = 'Tool Wear Monitoring'
 
 class WorkpieceMaterialEnum(str, Enum):
-    S235 = 'S235'
-    _4140 = '4140'
-    TIAL = 'TiAl'
-    GRADE_5_TITANIUM = 'Grade 5 Titanium'
+    C45 = 'C45'
+    STEEL__GENERIC_ = 'Steel (generic)'
 
 class ToolMaterialEnum(str, Enum):
-    PCD = 'PCD'
+    CARBIDE__P40_ = 'Carbide (P40)'
     CARBIDE = 'Carbide'
     MCD = 'MCD'
     CERAMIC = 'Ceramic'
+    PCD = 'PCD'
 
 class CoolantEnum(str, Enum):
-    FLOOD = 'Flood'
+    DRY = 'Dry'
+    AIR = 'Air'
     MMQ = 'MMQ'
-    _ = '…'
+    FLOOD = 'Flood'
+    OIL = 'Oil'
 
 @dataclass
 class UnifiedMetadata:
