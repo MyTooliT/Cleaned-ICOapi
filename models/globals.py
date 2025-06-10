@@ -74,6 +74,7 @@ class MeasurementState:
         self.start_time: str | None = None
         self.tool_name: str | None = None
         self.instructions: MeasurementInstructions | None = None
+        self.stop_flag = False
 
     def __setattr__(self, name: str, value):
         super().__setattr__(name, value)
@@ -88,6 +89,7 @@ class MeasurementState:
         self.start_time = None
         self.tool_name = None
         self.instructions = None
+        self.stop_flag = False
         await get_messenger().push_messenger_update()
 
     def get_status(self):

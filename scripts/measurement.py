@@ -179,28 +179,29 @@ async def run_measurement(
     start_time: float = 0
 
     try:
-        async with network.open_data_stream(streaming_configuration) as stream:
+        with Storage(Path(f'{get_measurement_dir()}/{measurement_state.name}.hdf5'), streaming_configuration) as storage:
 
-            with Storage(Path(f'{get_measurement_dir()}/{measurement_state.name}.hdf5'), streaming_configuration) as storage:
+            logger.info(f"Opened measurement file: <{get_measurement_dir()}/{measurement_state.name}.hdf5> for writing")
+
+            storage.add_acceleration_meta(
+                "conversion", "true"
+            )
+
+            storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
+
+            if instructions.meta is not None:
+                meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
+                storage.add_acceleration_meta(
+                    "metadata", meta_dump
+                )
+                storage.add_acceleration_meta(
+                    "metadata_version", METADATA_VERSION
+                )
+                logger.debug("Added measurement metadata")
+
+            async with network.open_data_stream(streaming_configuration) as stream:
 
                 logger.info(f"Measurement started for file <{get_measurement_dir()}/{measurement_state.name}.hdf5>")
-
-                storage.add_acceleration_meta(
-                    "conversion", "true"
-                )
-
-                storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
-
-                if instructions.meta is not None:
-                    meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
-                    storage.add_acceleration_meta(
-                        "metadata", meta_dump
-                    )
-                    storage.add_acceleration_meta(
-                        "metadata_version", METADATA_VERSION
-                    )
-                    logger.debug("Added measurement metadata")
-
 
                 counter: int = 0
                 data_collected_for_send: list = []
@@ -315,6 +316,9 @@ async def run_measurement(
                         if data.timestamp - timestamps[0] >= instructions.time:
                             logger.info(f"Timeout reached at with current being <{data.timestamp}> and first entry being {timestamps[0]}s")
                             break
+                    elif measurement_state.stop_flag:
+                        logger.info(f"Stop flag set - stopping measurement")
+                        break
 
                 # Send dataloss
                 for client in measurement_state.clients:

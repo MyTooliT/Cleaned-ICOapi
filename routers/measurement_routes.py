@@ -83,7 +83,10 @@ async def websocket_endpoint(
 
     try:
         while True:
-            await websocket.receive_text()
+            msg = await websocket.receive_text()
+            logger.info(f"Received message from client: {msg}")
+            if msg == "stop":
+                measurement_state.stop_flag = True
     except WebSocketDisconnect:
         try:
             measurement_state.clients.remove(websocket)
