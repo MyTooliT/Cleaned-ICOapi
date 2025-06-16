@@ -54,9 +54,9 @@ class UnifiedMetadata:
     experiment: str
     process: ProcessEnum
     activity: ActivityEnum
-    workpiece_material: WorkpieceMaterialEnum
+    workpiece_material: WorkpieceMaterialEnum|str
     cutting_speed: Quantity
-    tool_material: ToolMaterialEnum
+    tool_material: ToolMaterialEnum|str
     coolant: CoolantEnum
     sth_mac: str
     stu_mac: str

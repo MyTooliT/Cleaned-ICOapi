@@ -15,7 +15,11 @@ from typing import Optional
 
 def to_python_type(datatype: str, param_id: str, enums: dict, quantities: set) -> str:
     if param_id in enums:
-        return param_id.title().replace('_', '') + "Enum"
+        name = param_id.title().replace('_', '') + "Enum"
+        if datatype.lower() == "text_suggestions":
+            name += "|str"
+        return name
+
     if param_id in quantities:
         return "Quantity"
     dt = datatype.lower()
