@@ -3,9 +3,10 @@ from typing import List, Optional
 import yaml
 from mytoolit.measurement import Storage
 from mytoolit.measurement.storage import StorageData
+from pydantic import BaseModel
 from tables import Float32Col, IsDescription, StringCol, UInt8Col
 
-from models.models import MeasurementInstructionChannel, Sensor
+from models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor
 import logging
 
 from scripts.file_handling import ensure_folder_exists, get_measurement_dir
@@ -148,3 +149,26 @@ def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> N
         count += 1
 
     logger.info(f"Added {count} sensors to the HDF5 file.")
+
+
+
+class MeasurementSensorInfo:
+    first_channel_sensor: Sensor | None
+    second_channel_sensor: Sensor | None
+    third_channel_sensor: Sensor | None
+    voltage_scaling: float
+
+    def __init__(self, instructions: MeasurementInstructions):
+        super().__init__()
+        self.first_channel_sensor = get_sensor_for_channel(instructions.first)
+        self.second_channel_sensor = get_sensor_for_channel(instructions.second)
+        self.third_channel_sensor = get_sensor_for_channel(instructions.third)
+        self.voltage_scaling = get_voltage_from_raw(instructions.adc.reference_voltage)
+
+    def get_values(self):
+        return (
+            self.first_channel_sensor,
+            self.second_channel_sensor,
+            self.third_channel_sensor,
+            self.voltage_scaling
+        )

@@ -1,23 +1,21 @@
 import asyncio
 import json
 import os
-import time
 from functools import partial
 from pathlib import Path
 import logging
-from typing import List
-
 from mytoolit.can import Network, UnsupportedFeatureException
 from mytoolit.can.adc import ADCConfiguration
 from mytoolit.can.streaming import StreamingConfiguration, StreamingData, StreamingTimeoutError
 from mytoolit.measurement.sensor import SensorConfiguration
 from mytoolit.scripts.icon import read_acceleration_sensor_range_in_g
-from mytoolit.measurement import Storage, convert_raw_to_g
+from mytoolit.measurement import convert_raw_to_g
+from mytoolit.measurement.storage import StorageData, Storage
 from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
 
 from models.autogen.metadata import METADATA_VERSION
-from scripts.data_handling import add_sensor_data_to_storage, get_voltage_from_raw, get_sensor_for_channel, get_sensors
+from scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
 from scripts.file_handling import get_measurement_dir
 from models.globals import MeasurementState
 from models.models import DataValueModel, MeasurementInstructions
@@ -150,6 +148,71 @@ async def send_ift_values(
             logger.warning("Client must be disconnected, passing")
 
 
+def write_pre_metadata(instructions: MeasurementInstructions, storage: StorageData) -> None:
+    storage.add_acceleration_meta("conversion", "true")
+    storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
+    if instructions.meta is not None:
+        meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
+        storage.add_acceleration_meta(
+            "metadata", meta_dump
+        )
+        storage.add_acceleration_meta(
+            "metadata_version", METADATA_VERSION
+        )
+        logger.debug("Added measurement metadata")
+
+
+def get_sendable_data_and_apply_conversion(streaming_configuration: StreamingConfiguration, sensor_info: MeasurementSensorInfo, data: StreamingData) -> DataValueModel:
+    first_channel_sensor, second_channel_sensor, third_channel_sensor, voltage_scaling = sensor_info.get_values()
+
+    data_to_send = DataValueModel(
+        first=None,
+        second=None,
+        third=None,
+        ift=None,
+        counter=data.counter,
+        timestamp=data.timestamp,
+        dataloss=None
+    )
+
+    if streaming_configuration.first:
+        if not streaming_configuration.second and not streaming_configuration.third:
+
+            def convert_single(val: float) -> float:
+                volts = val * voltage_scaling
+                return first_channel_sensor.convert_to_phys(volts)
+
+            data.apply(convert_single)
+            data_to_send.first = data.values[0]
+
+        elif streaming_configuration.second and not streaming_configuration.third:
+            data.values = [
+                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
+                second_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
+            ]
+            data_to_send.first = data.values[0]
+            data_to_send.second = data.values[1]
+
+        elif not streaming_configuration.second and streaming_configuration.third:
+            data.values = [
+                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
+                third_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
+            ]
+            data_to_send.first = data.values[0]
+            data_to_send.third = data.values[1]
+
+        else:
+            data.values = [
+                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
+                second_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
+                third_channel_sensor.convert_to_phys(data.values[2] * voltage_scaling),
+            ]
+            data_to_send.first = data.values[0]
+            data_to_send.second = data.values[1]
+            data_to_send.third = data.values[2]
+
+    return data_to_send
+
 async def run_measurement(
         network: Network,
         instructions: MeasurementInstructions,
@@ -177,42 +240,23 @@ async def run_measurement(
     ift_relevant_channel: list[float] = []
     ift_sent: bool = False
     start_time: float = 0
-
+    measurement_file_path = Path(f'{get_measurement_dir()}/{measurement_state.name}.hdf5')
     try:
-        with Storage(Path(f'{get_measurement_dir()}/{measurement_state.name}.hdf5'), streaming_configuration) as storage:
+        with Storage(measurement_file_path, streaming_configuration) as storage:
 
-            logger.info(f"Opened measurement file: <{get_measurement_dir()}/{measurement_state.name}.hdf5> for writing")
+            logger.info(f"Opened measurement file: <{measurement_file_path}> for writing")
 
-            storage.add_acceleration_meta(
-                "conversion", "true"
-            )
-
-            storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
-
-            if instructions.meta is not None:
-                meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
-                storage.add_acceleration_meta(
-                    "metadata", meta_dump
-                )
-                storage.add_acceleration_meta(
-                    "metadata_version", METADATA_VERSION
-                )
-                logger.debug("Added measurement metadata")
+            write_pre_metadata(instructions, storage)
 
             async with network.open_data_stream(streaming_configuration) as stream:
 
-                logger.info(f"Measurement started for file <{get_measurement_dir()}/{measurement_state.name}.hdf5>")
+                logger.info(f"Opened measurement stream: <{measurement_file_path}>")
 
                 counter: int = 0
                 data_collected_for_send: list = []
 
-                voltage_scaling = get_voltage_from_raw(instructions.adc.reference_voltage)
-                logger.info(f"ADC reference voltage of {instructions.adc.reference_voltage} results in factor voltage_scaling: {voltage_scaling}")
-
-                first_channel_sensor = get_sensor_for_channel(instructions.first)
-                second_channel_sensor = get_sensor_for_channel(instructions.second)
-                third_channel_sensor = get_sensor_for_channel(instructions.third)
-
+                sensor_info = MeasurementSensorInfo(instructions)
+                first_channel_sensor, second_channel_sensor, third_channel_sensor, voltage_scaling = sensor_info.get_values()
                 add_sensor_data_to_storage(storage, [first_channel_sensor, second_channel_sensor, third_channel_sensor])
 
                 if streaming_configuration.first:
@@ -229,59 +273,16 @@ async def run_measurement(
                         logger.info(f"Running in triple channel mode with sensors {sensor_configuration.first}, {sensor_configuration.second} and {sensor_configuration.third}.")
 
                 async for data, _ in stream:
+
                     if start_time == 0:
                         start_time = data.timestamp
                         logger.debug(f"Set measurement start time to {start_time}")
-                    # Convert timestamp to seconds since measurement start -> taking a step out of the client's work
+
+                    # Convert timestamp to seconds since measurement start
                     data.timestamp = (data.timestamp - start_time)
+
+                    # Save values required for future calculations
                     timestamps.append(data.timestamp)
-
-                    data_to_send = DataValueModel(
-                        first=None,
-                        second=None,
-                        third=None,
-                        ift=None,
-                        counter=data.counter,
-                        timestamp=data.timestamp,
-                        dataloss=None
-                    )
-
-                    if streaming_configuration.first:
-                        if not streaming_configuration.second and not streaming_configuration.third:
-
-                            def convert_single(val: float) -> float:
-                                volts = val * voltage_scaling
-                                return first_channel_sensor.convert_to_phys(volts)
-
-                            data.apply(convert_single)
-                            data_to_send.first = data.values[0]
-
-                        elif streaming_configuration.second and not streaming_configuration.third:
-                            data.values = [
-                                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
-                                second_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
-                            ]
-                            data_to_send.first = data.values[0]
-                            data_to_send.second = data.values[1]
-
-                        elif not streaming_configuration.second and streaming_configuration.third:
-                            data.values = [
-                                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
-                                third_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
-                            ]
-                            data_to_send.first = data.values[0]
-                            data_to_send.third = data.values[1]
-
-                        else:
-                            data.values = [
-                                first_channel_sensor.convert_to_phys(data.values[0] * voltage_scaling),
-                                second_channel_sensor.convert_to_phys(data.values[1] * voltage_scaling),
-                                third_channel_sensor.convert_to_phys(data.values[2] * voltage_scaling),
-                            ]
-                            data_to_send.first = data.values[0]
-                            data_to_send.second = data.values[1]
-                            data_to_send.third = data.values[2]
-
                     if instructions.ift_requested:
                         match instructions.ift_channel:
                             case "first":
@@ -291,8 +292,9 @@ async def run_measurement(
                             case "third":
                                 ift_relevant_channel.append(data.values[third_index])
 
-                    storage.add_streaming_data(data)
 
+                    data_to_send = get_sendable_data_and_apply_conversion(streaming_configuration, sensor_info, data)
+                    storage.add_streaming_data(data)
 
                     if counter >= (sample_rate // int(os.getenv("WEBSOCKET_UPDATE_RATE", 60))):
                         for client in measurement_state.clients:
@@ -306,12 +308,11 @@ async def run_measurement(
                         data_collected_for_send.append(data_to_send.model_dump())
                         counter += 1
 
-                    # Exit condition
+                    # Skip exit conditions on the first iteration
                     if timestamps[0] is None:
-                        logger.warning(f"Exit condition in first loop hit")
                         continue
 
-                    # Exit condition
+                    # Exit conditions
                     if instructions.time is not None:
                         if data.timestamp - timestamps[0] >= instructions.time:
                             logger.info(f"Timeout reached at with current being <{data.timestamp}> and first entry being {timestamps[0]}s")
