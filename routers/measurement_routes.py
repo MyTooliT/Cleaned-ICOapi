@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import logging
 
 import pathvalidate
@@ -84,7 +85,8 @@ async def websocket_endpoint(
 
     try:
         while True:
-            msg: MeasurementSocketMessage = await websocket.receive_json()
+            raw = await websocket.receive_text()
+            msg = MeasurementSocketMessage(**json.loads(raw))
             logger.info(f"Received message from client: {msg.message}")
             if msg.message == "stop":
                 measurement_state.post_metadata = msg.data

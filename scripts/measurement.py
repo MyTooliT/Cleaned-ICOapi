@@ -4,6 +4,8 @@ import os
 from functools import partial
 from pathlib import Path
 import logging
+
+import mytoolit.can.network
 from mytoolit.can import Network, UnsupportedFeatureException
 from mytoolit.can.adc import ADCConfiguration
 from mytoolit.can.streaming import StreamingConfiguration, StreamingData, StreamingTimeoutError
@@ -14,7 +16,6 @@ from mytoolit.measurement.storage import StorageData, Storage
 from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
 
-from models.autogen.metadata import METADATA_VERSION
 from scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
 from scripts.file_handling import get_measurement_dir
 from models.globals import MeasurementState
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 async def setup_adc(network: Network, instructions: MeasurementInstructions) -> int:
     """
-    Write ADC configuration to the holder. Currently only supports default values.
+    Write ADC configuration to the holder.
 
     :param network: CAN Network instance from API
     :param instructions: client instructions
@@ -37,7 +38,11 @@ async def setup_adc(network: Network, instructions: MeasurementInstructions) -> 
         oversampling_rate=instructions.adc.oversampling_rate if instructions.adc.oversampling_rate else 64,
         reference_voltage=instructions.adc.reference_voltage if instructions.adc.reference_voltage else 3.3,
     )
-    await network.write_adc_configuration(**adc_config)
+
+    try:
+        await network.write_adc_configuration(**adc_config)
+    except mytoolit.can.network.NoResponseError:
+        logger.warning("No response from CAN bus - ADC configuration not written")
 
     sample_rate = adc_config.sample_rate()
     logger.info(f"Sample Rate: {sample_rate} Hz")
