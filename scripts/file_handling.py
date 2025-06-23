@@ -38,7 +38,7 @@ def get_measurement_dir() -> str:
         logger.info(f"Detected Windows; used local appdata directory: {data_dir}")
     elif os.name == "posix":
         data_dir = linux_get_preferred_data_dir(measurement_dir)
-        logger.info(f"Detected Windows; directory: {data_dir}")
+        logger.info(f"Detected POSIX; directory: {data_dir}")
     else:
         raise EnvironmentError("Unsupported operating system")
 
