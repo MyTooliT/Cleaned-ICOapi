@@ -5,7 +5,7 @@ from typing import List
 from mytoolit.can.network import Network
 from starlette.websockets import WebSocket
 
-from models.models import MeasurementInstructions, MeasurementStatus, Metadata, SystemStateModel
+from models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel
 from models.trident import BaseClient, NoopClient, StorageClient
 from scripts.file_handling import get_disk_space_in_gb
 
@@ -191,12 +191,14 @@ class GeneralMessenger:
         cloud = await get_trident_client()
         cloud_ready = cloud.is_authenticated()
         for client in cls._clients:
-            await client.send_json(SystemStateModel(
-                can_ready=NetworkSingleton.has_instance(),
-                disk_capacity=get_disk_space_in_gb(),
-                cloud_status=bool(cloud_ready),
-                measurement_status=get_measurement_state().get_status()
-            ).model_dump())
+            await client.send_json(SocketMessage(
+                message="state",
+                data=SystemStateModel(
+                    can_ready=NetworkSingleton.has_instance(),
+                    disk_capacity=get_disk_space_in_gb(),
+                    cloud_status=bool(cloud_ready),
+                    measurement_status=get_measurement_state().get_status()
+            )).model_dump())
 
         if(len(cls._clients)) > 0:
             logger.info(f"Updated general messenger list with {len(cls._clients)} clients.")
@@ -205,13 +207,17 @@ class GeneralMessenger:
     @classmethod
     async def send_post_meta_request(cls):
         for client in cls._clients:
-            await client.send_text("post_meta_request")
+            await client.send_json(SocketMessage(
+                message="post_meta_request"
+            ).model_dump())
 
 
     @classmethod
     async def send_post_meta_completed(cls):
         for client in cls._clients:
-            await client.send_text("post_meta_completed")
+            await client.send_json(SocketMessage(
+                message="post_meta_completed"
+            ).model_dump())
 
 
 def get_messenger():

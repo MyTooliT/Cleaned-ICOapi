@@ -7,8 +7,9 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from models.globals import GeneralMessenger, MeasurementState, NetworkSingleton, get_measurement_state, \
     get_messenger, get_trident_client
-from models.models import SystemStateModel
+from models.models import SocketMessage, SystemStateModel
 from models.trident import StorageClient
+from scripts.data_handling import get_storage_path
 from scripts.file_handling import get_disk_space_in_gb
 
 router = APIRouter(
@@ -46,21 +47,36 @@ async def state_websocket(
 
     try:
         # Initial send of data on connect
-        await websocket.send_json(SystemStateModel(
-            can_ready=bool(NetworkSingleton.has_instance()),
-            disk_capacity=get_disk_space_in_gb(),
-            measurement_status=measurement_state.get_status(),
-            cloud_status=bool(storage.is_authenticated())
-        ).model_dump())
+        # try:
+        #     with open(get_storage_path(), 'r') as file_object:
+        #         await websocket.send_json(SocketMessage(
+        #             message="local_storage_state",
+        #             data=file_object.read()
+        #         ).model_dump())
+        # except FileNotFoundError:
+        #     logger.info("No local storage state found.")
+
+        await websocket.send_json(SocketMessage(
+            message="state",
+            data=SystemStateModel(
+                can_ready=bool(NetworkSingleton.has_instance()),
+                disk_capacity=get_disk_space_in_gb(),
+                measurement_status=measurement_state.get_status(),
+                cloud_status=bool(storage.is_authenticated())
+        )).model_dump())
+
         while True:
-            command = await websocket.receive_text()
-            if command == "get_state":
-                await websocket.send_json(SystemStateModel(
-                    can_ready=bool(NetworkSingleton.has_instance()),
-                    disk_capacity=get_disk_space_in_gb(),
-                    measurement_status=measurement_state.get_status(),
-                    cloud_status=bool(storage.is_authenticated())
-                ).model_dump())
+            text = await websocket.receive_text()
+            msg = SocketMessage(**json.loads(text))
+            if msg.message == "get_state":
+                await websocket.send_json(SocketMessage(
+                    message="state",
+                    data=SystemStateModel(
+                        can_ready=bool(NetworkSingleton.has_instance()),
+                        disk_capacity=get_disk_space_in_gb(),
+                        measurement_status=measurement_state.get_status(),
+                        cloud_status=bool(storage.is_authenticated())
+                    )).model_dump())
                 logger.info("Sent state information data to client upon request.")
     except WebSocketDisconnect:
         try:

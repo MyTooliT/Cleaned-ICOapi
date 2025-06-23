@@ -111,13 +111,6 @@ class MeasurementInstructions:
     wait_for_post_meta: bool = False
 
 
-@dataclass
-class MeasurementSocketMessage:
-    """Data model for measurement socket message"""
-    message: str
-    data: Metadata | None
-
-
 class DataValueModel(BaseModel, JSONEncoder):
     """Data model for sending measured data"""
 
@@ -199,6 +192,12 @@ class SystemStateModel(BaseModel, JSONEncoder):
     disk_capacity: DiskCapacity
     measurement_status: MeasurementStatus
     cloud_status: bool
+
+
+class SocketMessage(BaseModel, JSONEncoder):
+    """Data model for websocket message"""
+    message: str
+    data: Optional[Any] = None
 
 
 @dataclass

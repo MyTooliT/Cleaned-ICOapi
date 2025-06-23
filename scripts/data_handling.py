@@ -13,6 +13,9 @@ from scripts.file_handling import ensure_folder_exists, get_measurement_dir
 
 logger = logging.getLogger(__name__)
 
+def get_storage_path():
+    return path.join(get_measurement_dir(), "config", "local_storage.json")
+
 def get_sensor_yaml_path():
     return path.join(path.join(get_measurement_dir(), "config"), "sensors.yaml")
 
