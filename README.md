@@ -2,7 +2,11 @@
 
 A REST and WebSocket API using the Python FastAPI library. You can find the official documentation [here](https://fastapi.tiangolo.com/).
 
-We currently support Windows 10+ and Debian/Linux.
+We currently support 
+
+- Windows 10+,
+- Debian/Linux, and
+- macOS.
 
 Additionally, when the API is running, it hosts an OpenAPI compliant documentation under `/docs`, e.g. under [`localhost:33215/docs`](http://localhost:33215/docs).
 # Installation
@@ -15,7 +19,7 @@ This repository can be setup manually for Windows and Linux or using the install
 
 ## Manual Installation (Development)
 
-For a Linux environment:
+For a Linux/macOS environment:
 ```sh
 python3 -m venv venv
 source venv/bin/activate
@@ -107,6 +111,7 @@ VITE_BACKEND_FULL_MEASUREMENT_PATH=C:\Users\breurather\AppData\Local\icodaq
 - On Linux, it is the first available of:
   - `$XDG_DATA_DIRS`
   - `"/usr/local/share:/usr/share"`
+- On macOS it is the directory `Library/Application Support` in the user’s home folder
 
 `VITE_BACKEND_FULL_MEASUREMENT_PATH` lets you override the default pathing and tries to create the folder at your 
 supplied location. 
@@ -151,7 +156,7 @@ LOG_NAME_WITHOUT_EXTENSION=icodaq
 - You **need** to have permissions
 - The defaults are:
   - Windows: ``AppData/Local/icodaq/logs``
-  - Linux: ``~/.local/share/icodaq/logs``
+  - Linux/macOS: ``~/.local/share/icodaq/logs``
 
 ``LOG_NAME_WITHOUT_EXTENSION`` sets the name of the logfile. Without any file extension.
 
