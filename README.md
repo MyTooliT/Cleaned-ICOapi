@@ -250,6 +250,8 @@ The application is set up to log _everything_. This is how the logging is set up
 
 # Example Requests
 
+**Note:** The sample requests below use the [command line version of httpie](https://httpie.io/cli)
+
 Get list of available sensor devices:
 
 ```sh
