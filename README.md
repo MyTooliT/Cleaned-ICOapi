@@ -27,11 +27,6 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-On Windows, also include this dependency:
-```sh
-pip install windows-curses==2.3.3
-```
-
 ## Service Installation (Linux)
 
 For Linux, there is an installation script which sets the directory for the actual installation, the directory for the 
