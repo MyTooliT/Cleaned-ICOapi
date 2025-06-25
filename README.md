@@ -27,6 +27,14 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+On Windows, please use:
+
+```sh
+venv/Scripts/activate
+```
+
+instead of `source venv/bin/activate`.
+
 ## Service Installation (Linux)
 
 For Linux, there is an installation script which sets the directory for the actual installation, the directory for the 
