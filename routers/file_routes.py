@@ -143,7 +143,7 @@ async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measur
 
         for start in range(0, total_rows, batch_size):
             end = min(start + batch_size, total_rows)
-            batch = parsed_file_content.acceleration_df.iloc[start:end:10]
+            batch = parsed_file_content.acceleration_df.iloc[start:end]
             batch_counter = batch["counter"].tolist()
             batch_timestamp = batch["timestamp"].tolist()
             datasets = batch.drop(columns=["counter", "timestamp"])
@@ -159,7 +159,7 @@ async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measur
             yield batch_dict.model_dump_json() + "\n"
 
             # Update progress
-            parsed_rows += len(batch) * 10
+            parsed_rows += len(batch)
             progress = parsed_rows / total_rows
             yield json.dumps({"progress": progress}) + "\n"
 
@@ -235,7 +235,7 @@ def node_to_dict(node):
         attributes={}
     )
 
-    for key in node._v_attrs._f_list():
+    for key in node._v_attrs._f_list(attrset='all'):
         raw = node._v_attrs[key]
         # first coerce numpy‐types to Python
         if hasattr(raw, "tolist"):
@@ -261,6 +261,7 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
         except AssertionError:
             raise HTTPException(status_code=500, detail="Acceleration data is not a table")
 
+        sensor_df = pd.DataFrame()
         try:
             sensor_data = file_handle.get_node("/sensors")
             assert isinstance(sensor_data, tables.Table)
