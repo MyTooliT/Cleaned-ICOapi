@@ -21,6 +21,7 @@ from scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorI
 from scripts.file_handling import get_measurement_dir
 from models.globals import GeneralMessenger, MeasurementState
 from models.models import DataValueModel, MeasurementInstructions, Metadata
+from scripts.sth_scripts import disconnect_sth_devices
 
 logger = logging.getLogger(__name__)
 
@@ -383,19 +384,22 @@ async def run_measurement(
                     except RuntimeError:
                         logger.warning("Client must be disconnected, passing")
 
-                # Send IFT value values at once after the measurement is finished.
-                if instructions.ift_requested:
-                    await send_ift_values(timestamps, ift_relevant_channel, instructions, measurement_state)
-                    ift_sent = True
+            if instructions.disconnect_after_measurement:
+                await disconnect_sth_devices(network)
 
-                if measurement_state.wait_for_post_meta:
-                    logger.info("Waiting for post-measurement metadata")
-                    await general_messenger.send_post_meta_request()
-                    while measurement_state.post_meta is None:
-                        await asyncio.sleep(1)
-                    logger.info("Received post-measurement metadata")
-                    await general_messenger.send_post_meta_completed()
-                    write_post_metadata(measurement_state.post_meta, storage)
+            # Send IFT value values at once after the measurement is finished.
+            if instructions.ift_requested:
+                await send_ift_values(timestamps, ift_relevant_channel, instructions, measurement_state)
+                ift_sent = True
+
+            if measurement_state.wait_for_post_meta:
+                logger.info("Waiting for post-measurement metadata")
+                await general_messenger.send_post_meta_request()
+                while measurement_state.post_meta is None:
+                    await asyncio.sleep(1)
+                logger.info("Received post-measurement metadata")
+                await general_messenger.send_post_meta_completed()
+                write_post_metadata(measurement_state.post_meta, storage)
 
 
     except StreamingTimeoutError as e:

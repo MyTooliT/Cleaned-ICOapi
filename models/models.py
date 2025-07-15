@@ -111,6 +111,7 @@ class MeasurementInstructions:
     adc: ADCValues | None
     meta: Metadata | None
     wait_for_post_meta: bool = False
+    disconnect_after_measurement: bool = False
 
 
 class DataValueModel(BaseModel, JSONEncoder):
