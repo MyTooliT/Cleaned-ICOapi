@@ -60,7 +60,7 @@ def view_log_file(file: str = Query(...), limit: int = Query(0)):
         raise HTTPException(status_code=404, detail="Log file not found.")
 
     try:
-        with open(requested_path, "r", encoding="utf-8") as f:
+        with open(requested_path, "r", encoding="utf-8", errors="ignore") as f:
             if limit > 0:
                 # Efficient line-limiting (no storing the whole file)
                 from collections import deque
