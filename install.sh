@@ -3,6 +3,7 @@
 set -e
 
 SERVICE_NAME="icoapi"
+MODULE_NAME="icoapi"
 INSTALL_DIR="/etc/icoapi"
 SERVICE_PATH="/etc/systemd/system"
 FORCE_REINSTALL=false
@@ -26,7 +27,7 @@ sudo mkdir -p $INSTALL_DIR
 sudo chown $USER:$USER $INSTALL_DIR
 
 echo "Copying application files..."
-FILES_AND_DIRS=(".env" "api.py" "models" "requirements.txt" "routers" "scripts" "utils")
+FILES_AND_DIRS=(".env" "$MODULE_NAME" "pyproject.toml" "README.md")
 
 for ITEM in "${FILES_AND_DIRS[@]}"; do
   #cp -r "$ITEM" "$INSTALL_DIR"
@@ -42,7 +43,7 @@ fi
 
 source venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install .
 deactivate
 
 echo "Ensuring systemd service exists..."
@@ -53,7 +54,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/api.py
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/$MODULE_NAME/api.py
 RestartSec=5
 Restart=always
 
