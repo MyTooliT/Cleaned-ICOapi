@@ -13,8 +13,7 @@ from models.models import DiskCapacity
 
 logger = logging.getLogger(__name__)
 
-def get_measurement_dir() -> str:
-    """To be used for dependency injection."""
+def load_env_file():
     env_loaded = load_dotenv(".env")
     if getattr(sys, 'frozen', False):
         # we are running in a bundle
@@ -24,6 +23,10 @@ def get_measurement_dir() -> str:
     if not env_loaded:
         logger.critical(f"Environment variables not found")
         raise EnvironmentError(".env not found")
+
+def get_measurement_dir() -> str:
+    """To be used for dependency injection."""
+    load_env_file()
 
     # Check for full path in .env
     full_path = os.getenv("VITE_BACKEND_FULL_MEASUREMENT_PATH")

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from routers import sensor_routes, stu_routes, sth_routes, common, file_routes, measurement_routes, cloud_routes, \
     log_routes
-from scripts.file_handling import ensure_folder_exists, get_measurement_dir
+from scripts.file_handling import ensure_folder_exists, get_measurement_dir, load_env_file
 from models.globals import MeasurementSingleton, NetworkSingleton, get_trident_client
 from utils.logging_setup import setup_logging
 import logging
@@ -62,17 +62,13 @@ app.add_middleware(
 
 
 if __name__ == "__main__":
-    setup_logging()
     import uvicorn
-    from dotenv import load_dotenv
 
-    PORT: int = 33215
-    HOST: str = "0.0.0.0"
+    load_env_file()
+    setup_logging()
 
-    env_found = load_dotenv(".env")
-    if env_found:
-        PORT = int(getenv("VITE_API_PORT", PORT))
-        HOST = getenv("VITE_API_HOSTNAME")
+    PORT = int(getenv("VITE_API_PORT", 33215))
+    HOST = getenv("VITE_API_HOSTNAME", "0.0.0.0")
 
     ensure_folder_exists(get_measurement_dir())
 

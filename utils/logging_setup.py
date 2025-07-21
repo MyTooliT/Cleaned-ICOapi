@@ -12,11 +12,13 @@ import sys
 import orjson
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
+from scripts.file_handling import load_env_file
+
 
 log_watchers: List[WebSocket] = []
 log_queue: asyncio.Queue[str] = asyncio.Queue()
 
-load_dotenv(".env")
+load_env_file()
 
 LOG_LEVEL = os.getenv("LOG_LEVEL").upper()
 LOG_USE_JSON = os.getenv("LOG_USE_JSON", "0") == "1"
