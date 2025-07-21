@@ -12,7 +12,7 @@ import sys
 import orjson
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
-from scripts.file_handling import load_env_file
+from icoapi.scripts.file_handling import load_env_file
 
 
 log_watchers: List[WebSocket] = []

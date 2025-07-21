@@ -6,10 +6,10 @@ import os
 
 from starlette.status import HTTP_502_BAD_GATEWAY
 
-from models.globals import get_trident_client
-from models.models import TridentBucketObject
-from models.trident import AuthorizationError, HostNotFoundError, StorageClient
-from scripts.file_handling import get_measurement_dir
+from icoapi.models.globals import get_trident_client
+from icoapi.models.models import TridentBucketObject
+from icoapi.models.trident import AuthorizationError, HostNotFoundError, StorageClient
+from icoapi.scripts.file_handling import get_measurement_dir
 
 router = APIRouter(
     prefix="/cloud",

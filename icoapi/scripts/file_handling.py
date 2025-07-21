@@ -9,7 +9,7 @@ import re
 from dotenv import load_dotenv
 from platformdirs import user_data_dir
 
-from models.models import DiskCapacity
+from icoapi.models.models import DiskCapacity
 
 logger = logging.getLogger(__name__)
 

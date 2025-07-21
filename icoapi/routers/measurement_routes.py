@@ -6,9 +6,9 @@ import pathvalidate
 from fastapi import APIRouter, Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from models.models import MeasurementStatus, ControlResponse, MeasurementInstructions, Metadata
-from models.globals import get_messenger, get_network, get_measurement_state, MeasurementState, Network
-from scripts.measurement import run_measurement
+from icoapi.models.models import MeasurementStatus, ControlResponse, MeasurementInstructions, Metadata
+from icoapi.models.globals import get_messenger, get_network, get_measurement_state, MeasurementState, Network
+from icoapi.scripts.measurement import run_measurement
 
 router = APIRouter(
     prefix="/measurement",

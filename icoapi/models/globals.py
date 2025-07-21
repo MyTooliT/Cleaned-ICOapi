@@ -5,9 +5,9 @@ from typing import List
 from mytoolit.can.network import Network
 from starlette.websockets import WebSocket
 
-from models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel
-from models.trident import BaseClient, NoopClient, StorageClient
-from scripts.file_handling import get_disk_space_in_gb
+from icoapi.models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel
+from icoapi.models.trident import BaseClient, NoopClient, StorageClient
+from icoapi.scripts.file_handling import get_disk_space_in_gb
 
 logger = logging.getLogger(__name__)
 

@@ -5,11 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from mytoolit.can.network import CANInitError
 from contextlib import asynccontextmanager
 
-from routers import sensor_routes, stu_routes, sth_routes, common, file_routes, measurement_routes, cloud_routes, \
+from icoapi.routers import sensor_routes, stu_routes, sth_routes, common, file_routes, measurement_routes, cloud_routes, \
     log_routes
-from scripts.file_handling import ensure_folder_exists, get_measurement_dir, load_env_file
-from models.globals import MeasurementSingleton, NetworkSingleton, get_trident_client
-from utils.logging_setup import setup_logging
+from icoapi.scripts.file_handling import ensure_folder_exists, get_measurement_dir, load_env_file
+from icoapi.models.globals import MeasurementSingleton, NetworkSingleton, get_trident_client
+from icoapi.utils.logging_setup import setup_logging
 import logging
 
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     ensure_folder_exists(get_measurement_dir())
 
     uvicorn.run(
-        "api:app",
+        "icoapi.api:app",
         host=HOST,
         port=PORT,
         log_config=None

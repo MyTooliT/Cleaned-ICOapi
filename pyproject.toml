@@ -1,0 +1,36 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+authors = [
+  {name = "Moritz Breurather", email = "breurather@ift.at"},
+  {name = "René Schwaiger", email = "rene.schwaiger@ift.at"},
+]
+
+dependencies = [
+  "colorlog>=6.9.0,<7",
+  "fastapi>=0.115.7",
+  "icoc>=2,<3",
+  "icolyzer>=1.8.0",
+  "orjson>=3.11.0",
+  "pandas>=2.2.3,<3",
+  "pathvalidate>=3.3.1,<4",
+  "python-dotenv>=1.0.1,<2",
+  "python-multipart>=0.0.20",
+  "pyyaml>=6.0.1,<7",
+  "uvicorn>=0.35.0",
+]
+description = """A REST and WebSocket API for the ICOtronic system using the \
+                 Python FastAPI library"""
+keywords = [
+  "smart-tool",
+  "smh",
+  "stu",
+  "sth",
+  "tool-holder",
+]
+name = "icoapi"
+readme = "README.md"
+requires-python = ">=3.10,<4"
+version = "0.1"

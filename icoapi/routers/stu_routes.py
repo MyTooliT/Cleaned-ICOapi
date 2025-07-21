@@ -2,10 +2,10 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, status, Body, Depends
 from fastapi.responses import Response
 from mytoolit.can.network import Network
-from models.models import STUDeviceResponseModel
-from models.globals import MeasurementState, get_measurement_state, get_network
-from scripts.stu_scripts import get_stu_devices, reset_stu, enable_ota, disable_ota
-from scripts.errors import CANResponseError
+from icoapi.models.models import STUDeviceResponseModel
+from icoapi.models.globals import MeasurementState, get_measurement_state, get_network
+from icoapi.scripts.stu_scripts import get_stu_devices, reset_stu, enable_ota, disable_ota
+from icoapi.scripts.errors import CANResponseError
 import mytoolit.can
 
 router = APIRouter(

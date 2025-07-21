@@ -16,24 +16,13 @@ This repository can be setup manually for Windows and Linux or using the install
 ## Prerequisites
 
 - Python 3.10+, from the official [Python Website](https://www.python.org/downloads/)
+- [Poetry](https://python-poetry.org) (for development)
 
 ## Manual Installation (Development)
 
-For a Linux/macOS environment:
-```sh
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
 ```
-
-On Windows, please use:
-
-```sh
-venv/Scripts/activate
+poetry lock && poetry install
 ```
-
-instead of `source venv/bin/activate`.
 
 ## Service Installation (Linux)
 
@@ -228,7 +217,7 @@ changes to the repository as the service simply installs the current version.
 For any other usage or for local development, run:
 
 ```shell
-python3 api.py
+poetry run python3 api.py
 ```
 
 # Development Guidelines
