@@ -21,7 +21,7 @@ This repository can be setup manually for Windows and Linux or using the install
 ## Manual Installation (Development)
 
 ```
-poetry lock && poetry install
+poetry lock && poetry install --all-extras
 ```
 
 ## Service Installation (Linux)
@@ -221,6 +221,12 @@ For any other usage or for local development, run:
 
 ```shell
 poetry run python3 icoapi/api.py
+```
+
+# Test
+
+```sh
+poetry run pytest
 ```
 
 # Development Guidelines
