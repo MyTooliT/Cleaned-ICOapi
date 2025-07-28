@@ -217,7 +217,7 @@ changes to the repository as the service simply installs the current version.
 For any other usage or for local development, run:
 
 ```shell
-poetry run python3 api.py
+poetry run python3 icoapi/api.py
 ```
 
 # Development Guidelines
