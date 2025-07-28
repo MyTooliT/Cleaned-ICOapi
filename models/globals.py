@@ -145,14 +145,17 @@ class TridentHandler:
     @classmethod
     async def get_client(cls) -> StorageClient:
         if cls._client is None:
-            service = getenv("TRIDENT_API_BASE_URL")
+            protocol = getenv("TRIDENT_API_PROTOCOL")
+            domain = getenv("TRIDENT_API_DOMAIN")
+            base_path = getenv("TRIDENT_API_BASE_PATH")
+            service = f"{protocol}://{domain}/{base_path}"
             username = getenv("TRIDENT_API_USERNAME")
             password = getenv("TRIDENT_API_PASSWORD")
             default_bucket = getenv("TRIDENT_API_BUCKET")
 
-            cls._client = StorageClient(service, username, password, default_bucket)
+            cls._client = StorageClient(service, username, password, default_bucket, domain)
             await get_messenger().push_messenger_update()
-            logger.info(f"Created TridentClient for service <{service}>")
+            logger.info(f"Created TridentClient for user <{username}> at service <{service}>")
 
         return cls._client
 

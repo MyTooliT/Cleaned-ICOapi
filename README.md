@@ -126,13 +126,21 @@ supplied location.
 These settings control the implementation of the Trident API to use as a connected data storage. It requires credentials
 and needs to be explicitly enabled by setting the `TRIDENT_API_ENABLED` to `True`
 
+The complete service will be composed as ``<TRIDENT_API_PROCOTOL>://<TRIDENT_API_DOMAIN>/<TRIDENT_API_BASE_PATH>``. This 
+separation of the URI parts enables automatic setting of domain-specific cookies for token storage.
+
+Please note that the base path is set _without_ the leading ``/`` for simplicity. If more complex paths are the default
+base, they need to be entered as ``trident/v1/api`` for example.
+
 ```
 TRIDENT_API_ENABLED=True
 TRIDENT_API_USERNAME=...
 TRIDENT_API_PASSWORD=...
 TRIDENT_API_BUCKET="ctd-data-storage"
-TRIDENT_API_BASE_URL="https://iot.ift.tuwien.ac.at/trident"
 TRIDENT_API_BUCKET_FOLDER="default"
+TRIDENT_API_PROTOCOL=https
+TRIDENT_API_DOMAIN=iot.ift.tuwien.ac.at
+TRIDENT_API_BASE_PATH=trident
 ```
 
 ### Logging Settings

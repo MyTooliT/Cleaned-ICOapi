@@ -6,8 +6,6 @@ from http.client import HTTPException
 import requests
 import logging
 
-import urllib3.exceptions
-
 from scripts.file_handling import tries_to_traverse_directory
 
 logger = logging.getLogger(__name__)
@@ -19,10 +17,11 @@ class AuthorizationError(HTTPException):
     """Error for authorization error"""
 
 class TridentClient:
-    def __init__(self, service: str, username: str, password: str):
+    def __init__(self, service: str, username: str, password: str, domain: str):
         self.service = service
         self.username = username
         self.password = password
+        self.domain = domain
         self.secrets = {"username": username, "password": password}
         self.session = requests.Session()
 
@@ -38,7 +37,7 @@ class TridentClient:
             refresh_token = token_data.get("refresh_token")
 
             self.session.headers.update({"Authorization": f"Bearer {access_token}"})
-            self.session.cookies.set("refresh_token", refresh_token, domain="iot.ift.tuwien.ac.at")
+            self.session.cookies.set("refresh_token", refresh_token, domain=self.domain)
 
             logger.info("Successfully retrieved access and refresh token.")
             return access_token
@@ -173,8 +172,8 @@ class BaseClient:
 
 
 class StorageClient(BaseClient):
-    def __init__(self, service: str, username: str, password: str, default_bucket: str):
-        self._client = TridentClient(service, username, password)
+    def __init__(self, service: str, username: str, password: str, default_bucket: str, domain: str):
+        self._client = TridentClient(service, username, password, domain)
         self.default_bucket = default_bucket
 
     def get_buckets(self):
