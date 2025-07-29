@@ -5,12 +5,12 @@ from fastapi import APIRouter, status
 from fastapi.params import Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from models.globals import GeneralMessenger, MeasurementState, NetworkSingleton, get_measurement_state, \
+from icoapi.models.globals import GeneralMessenger, MeasurementState, NetworkSingleton, get_measurement_state, \
     get_messenger, get_trident_client
-from models.models import SocketMessage, SystemStateModel
-from models.trident import StorageClient
-from scripts.data_handling import get_storage_path
-from scripts.file_handling import get_disk_space_in_gb
+from icoapi.models.models import SocketMessage, SystemStateModel
+from icoapi.models.trident import StorageClient
+from icoapi.scripts.data_handling import get_storage_path
+from icoapi.scripts.file_handling import get_disk_space_in_gb
 
 router = APIRouter(
     tags=["General"]

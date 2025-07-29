@@ -14,11 +14,11 @@ from mytoolit.measurement.storage import StorageData, Storage
 from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
 
-from scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
-from scripts.file_handling import get_measurement_dir
-from models.globals import GeneralMessenger, MeasurementState
-from models.models import DataValueModel, MeasurementInstructions, Metadata
-from scripts.sth_scripts import disconnect_sth_devices
+from icoapi.scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
+from icoapi.scripts.file_handling import get_measurement_dir
+from icoapi.models.globals import GeneralMessenger, MeasurementState
+from icoapi.models.models import DataValueModel, MeasurementInstructions, Metadata
+from icoapi.scripts.sth_scripts import disconnect_sth_devices
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ async def send_ift_values(
         oversampling_rate=instructions.adc.oversampling_rate if instructions.adc.oversampling_rate else 64,
         reference_voltage=instructions.adc.reference_voltage if instructions.adc.reference_voltage else 3.3,
     ).sample_rate()
-    
+
     ift_values = maybe_get_ift_value(values, sample_frequency=freq, window_length=instructions.ift_window_width / 1000)
 
     if ift_values is None:

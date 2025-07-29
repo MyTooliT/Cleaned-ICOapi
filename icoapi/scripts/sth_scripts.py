@@ -6,9 +6,9 @@ from mytoolit.can.network import STHDeviceInfo, NoResponseError
 from mytoolit.can import Network
 from mytoolit.can.adc import ADCConfiguration
 
-from models.models import STHRenameResponseModel, ADCValues
-from scripts.stu_scripts import get_stu_devices
-from scripts.errors import CANResponseError
+from icoapi.models.models import STHRenameResponseModel, ADCValues
+from icoapi.scripts.stu_scripts import get_stu_devices
+from icoapi.scripts.errors import CANResponseError
 
 logger = logging.getLogger(__name__)
 

@@ -2,8 +2,8 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException, status
 
-from models.models import Sensor
-from scripts.data_handling import get_sensor_defaults, get_sensors, write_sensor_defaults
+from icoapi.models.models import Sensor
+from icoapi.scripts.data_handling import get_sensor_defaults, get_sensors, write_sensor_defaults
 
 router = APIRouter(
     prefix="/sensor",

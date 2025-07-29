@@ -6,8 +6,8 @@ import zipfile
 from fastapi import APIRouter, HTTPException,  Query, WebSocket, WebSocketDisconnect
 from starlette.responses import Response, StreamingResponse
 import logging
-from models.models import LogFileMeta, LogListResponse, LogResponse
-from utils.logging_setup import log_watchers, LOG_PATH, parse_timestamps, LOG_NAME, LOG_BACKUP_COUNT, LOG_MAX_BYTES
+from icoapi.models.models import LogFileMeta, LogListResponse, LogResponse
+from icoapi.utils.logging_setup import log_watchers, LOG_PATH, parse_timestamps, LOG_NAME, LOG_BACKUP_COUNT, LOG_MAX_BYTES
 
 router = APIRouter(
     prefix="/logs",

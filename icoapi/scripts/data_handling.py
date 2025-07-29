@@ -6,10 +6,10 @@ from mytoolit.measurement.storage import StorageData
 from pydantic import BaseModel
 from tables import Float32Col, IsDescription, StringCol, UInt8Col
 
-from models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor
+from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor
 import logging
 
-from scripts.file_handling import ensure_folder_exists, get_measurement_dir
+from icoapi.scripts.file_handling import ensure_folder_exists, get_measurement_dir
 
 logger = logging.getLogger(__name__)
 

@@ -8,3 +8,4 @@ data
 dist
 *.spec
 *.exe
+/poetry.lock
