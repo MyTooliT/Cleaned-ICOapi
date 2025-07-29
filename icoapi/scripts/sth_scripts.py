@@ -2,18 +2,17 @@ from time import time
 from asyncio import sleep
 from typing import List
 import logging
-from mytoolit.can.network import STHDeviceInfo, NoResponseError
+from mytoolit.can.network import STHDeviceInfo
 from mytoolit.can import Network
 from mytoolit.can.adc import ADCConfiguration
 
 from icoapi.models.models import STHRenameResponseModel, ADCValues
 from icoapi.scripts.stu_scripts import STU_1_NAME
-from icoapi.scripts.errors import CANResponseError
 
 logger = logging.getLogger(__name__)
 
-async def get_sth_devices_from_network(network: Network) -> List[STHDeviceInfo] | CANResponseError:
-    """Print a list of available sensor devices"""
+async def get_sth_devices_from_network(network: Network) -> List[STHDeviceInfo]:
+    """Get a list of available sensor devices"""
 
     timeout = time() + 5
     sensor_devices: List[STHDeviceInfo] = []
@@ -23,17 +22,14 @@ async def get_sth_devices_from_network(network: Network) -> List[STHDeviceInfo] 
     # - Subsequent retries should provide all available sensor devices
     # - We wait until the number of sensor devices is larger than 1 and
     #   has not changed between one iteration or the timeout is reached
-    try:
-        while (
-                len(sensor_devices) <= 0
-                and time() < timeout
-                or len(sensor_devices) != len(sensor_devices_before)
-        ):
-            sensor_devices_before = list(sensor_devices)
-            sensor_devices = await network.get_sensor_devices()
-            await sleep(0.5)
-    except NoResponseError:
-        return CANResponseError()
+    while (
+            len(sensor_devices) <= 0
+            and time() < timeout
+            or len(sensor_devices) != len(sensor_devices_before)
+    ):
+        sensor_devices_before = list(sensor_devices)
+        sensor_devices = await network.get_sensor_devices()
+        await sleep(0.5)
 
     return sensor_devices
 
@@ -70,15 +66,15 @@ async def rename_sth_device(network: Network, mac_address: str, new_name: str) -
     return STHRenameResponseModel(name=name, mac_address=mac_address.format(), old_name=old_name)
 
 
-async def read_sth_adc(network: Network, mac_address: str) -> ADCConfiguration | CANResponseError:
-    if not await network.is_connected():
-        return CANResponseError()
-    return await network.read_adc_configuration()
+async def read_sth_adc(network: Network) -> ADCConfiguration | None:
+    if await network.is_connected():
+        return await network.read_adc_configuration()
+    return None
 
 
-async def write_sth_adc(network: Network, mac_address: str, config: ADCValues) -> None | CANResponseError:
+async def write_sth_adc(network: Network, config: ADCValues) -> None:
     if not network.is_connected():
-        return CANResponseError()
+        raise TimeoutError
     adc = ADCConfiguration(
         reference_voltage=config.reference_voltage,
         prescaler=config.prescaler,

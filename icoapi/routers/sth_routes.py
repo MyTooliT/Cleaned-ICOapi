@@ -1,11 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Path, Response, status, Depends
-from mytoolit.can.network import CANInitError, Network
-
+from fastapi import APIRouter, Body, HTTPException, status, Depends
+from mytoolit.can import NoResponseError
+from mytoolit.can.network import Network
 from icoapi.models.models import ADCValues, STHDeviceResponseModel, STHRenameRequestModel, STHRenameResponseModel
 from icoapi.models.globals import get_network
-from icoapi.scripts.errors import ConnectionTimeoutError, Error, CANResponseError
 from icoapi.scripts.sth_scripts import connect_sth_device_by_mac, disconnect_sth_devices, get_sth_devices_from_network, \
     read_sth_adc, rename_sth_device, write_sth_adc
 
@@ -14,148 +13,221 @@ router = APIRouter(
     tags=["Sensory Tool Holder (STH)"],
 )
 
+HTTP_404_STH_UNREACHABLE_EXCEPTION = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="STH could not be connected and must be out of reach or discharged.")
+HTTP_404_STH_UNREACHABLE_SPEC = {
+    "description": "STH could not be connected and must be out of reach or discharged.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"},
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "STH could not be connected and must be out of reach or discharged.",
+                "status_code": 404,
+            },
+        }
+    }
+}
+
+HTTP_502_CAN_NO_RESPONSE_EXCEPTION = HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="The CAN network did not respond to the request.")
+HTTP_502_CAN_NO_RESPONSE_SPEC = {
+    "description": "The CAN network did not respond to the request.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"},
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "The CAN network did not respond to the request.",
+                "status_code": 502,
+            },
+        }
+    }
+}
+
 
 @router.get(
     '',
-    status_code=status.HTTP_200_OK,
     response_model=list[STHDeviceResponseModel],
     responses={
         200: {
-            "content": "application/json",
-            "description": "Return the STH Devices reachable"
-        }
-},)
+            "description": "Return the STH Devices reachable",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "The (Bluetooth advertisement) name of the STH"},
+                                "device_number": {"type": "integer", "description": "The device number of the STH"},
+                                "mac_address": {"type": "string", "description": "The (Bluetooth) MAC address of the STH"},
+                                "rssi": {"type": "integer", "description": "The RSSI of the STH"},
+                            },
+                            "required": ["name", "device_number", "mac_address", "rssi"],
+                        }
+                    },
+                    "example": [
+                        {
+                            "name": "STH-1234",
+                            "device_number": 1,
+                            "mac_address": "01:23:45:67:89:AB",
+                            "rssi": -40
+                        },
+                        {
+                            "name": "STH-5678",
+                            "device_number": 2,
+                            "mac_address": "12:34:56:78:9A:BC",
+                            "rssi": -42
+                        }
+                    ]
+                }
+            },
+        },
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC
+    }
+)
 async def sth(network: Network = Depends(get_network)) -> list[STHDeviceResponseModel]:
     """Get a list of available sensor devices"""
-    devices = await get_sth_devices_from_network(network)
-    return [STHDeviceResponseModel.from_network(device) for device in devices]
+    try:
+        devices = await get_sth_devices_from_network(network)
+        return [STHDeviceResponseModel.from_network(device) for device in devices]
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+
 
 
 @router.put(
     '/connect',
-    status_code=status.HTTP_200_OK,
     responses={
         200: {
-            "content": "application/json",
-            "description": "Connection was successful"
+            "description": "Connection was successful."
         },
-        404: {
-            "content": "application/json",
-            "description": "Indicates no STH Devices in reach"
-        }
+        404: HTTP_404_STH_UNREACHABLE_SPEC,
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
 async def sth_connect(
-    mac: Annotated[str, Body(embed=True)],
-    response: Response,
-    network: Network = Depends(get_network)
-) -> None | ConnectionTimeoutError | CANResponseError:
+        mac: Annotated[str, Body(embed=True)],
+        network: Network = Depends(get_network)
+) -> None:
     try:
         await connect_sth_device_by_mac(network, mac)
+        return None
     except TimeoutError:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return ConnectionTimeoutError()
-    except CANInitError:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return CANResponseError()
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+
 
 
 @router.put(
     '/disconnect',
-    status_code=status.HTTP_200_OK,
     responses={
         200: {
-            "content": "application/json",
-            "description": "Disconnection was successful"
+            "description": "Disconnect was successful."
         },
-        404: {
-            "content": "application/json",
-            "description": "Indicates error in disconnection"
-        }
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
 async def sth_disconnect(network: Network = Depends(get_network)) -> None:
-    # Note: since there is no disconnect method on the Network class, we just disable BT on the STU.
-    await disconnect_sth_devices(network)
+    try:
+        await disconnect_sth_devices(network)
+        return None
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
 @router.put(
     '/rename',
-    status_code=status.HTTP_200_OK,
     responses={
         200: {
-            "content": "application/json",
-            "description": "Rename was successful"
+            "description": "Connection was successful."
         },
-        502: {
-            "content": "application/json",
-            "description": "Indicates error in rename"
-        }
+        404: HTTP_404_STH_UNREACHABLE_SPEC,
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
 async def sth_rename(
     device_info: STHRenameRequestModel,
-    response: Response,
     network: Network = Depends(get_network)
-) -> STHRenameResponseModel | CANResponseError:
+) -> STHRenameResponseModel:
     try:
         return await rename_sth_device(network, device_info.mac_address, device_info.new_name)
     except TimeoutError:
-        response.status_code = status.HTTP_502_BAD_GATEWAY
-        return CANResponseError()
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
 @router.get(
-    "/read-adc/{mac}",
-    status_code=status.HTTP_200_OK,
+    "/read-adc",
     responses={
         200: {
-            "content": "application/json",
-            "description": "ADC reading was successful"
+            "description": "Connection was successful.",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "prescaler": {"type": "integer", "nullable": True, "description": "ADC prescaler"},
+                            "acquisition_time": {"type": "integer", "nullable": True, "description": "ADC acquisition time"},
+                            "oversampling_rate": {"type": "integer", "nullable": True, "description": "ADC oversampling rate"},
+                            "reference_voltage": {"type": "number", "format": "float", "nullable": True, "description": "ADC reference voltage"}
+                        },
+                        "required": []
+                    },
+                    "example": {
+                        "prescaler": 8,
+                        "acquisition_time": 12,
+                        "oversampling_rate": 256,
+                        "reference_voltage": 2.5
+                    }
+                }
+            }
         },
-        504: {
-            "content": "application/json",
-            "description": "ADC reading timed out"
-        }
+        404: HTTP_404_STH_UNREACHABLE_SPEC,
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
-async def read_adc(
-    mac: Annotated[str, Path(title="MAC Address of the STH")],
-    response: Response,
-    network: Network = Depends(get_network)
-) -> ADCValues | ConnectionTimeoutError:
+async def read_adc(network: Network = Depends(get_network)) -> ADCValues:
     try:
-        values = await read_sth_adc(network, mac)
-        return ADCValues(**values)
-    except Error:
-        response.status_code = status.HTTP_502_BAD_GATEWAY
-        return ConnectionTimeoutError()
+        values = await read_sth_adc(network)
+        if values is not None:
+            return ADCValues(**values)
+        else:
+            raise HTTP_404_STH_UNREACHABLE_EXCEPTION
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
-@router.put(
-    "/write-adc",
-    status_code=status.HTTP_200_OK,
-    responses={
-        200: {
-            "content": "application/json",
-            "description": "ADC writing was successful"
-        },
-        504: {
-            "content": "application/json",
-            "description": "ADC writing timed out"
-        }
-    }
-)
+@router.put("/write-adc", responses={
+    200: {
+        "description": "ADC configuration written successfully."
+    },
+    404: HTTP_404_STH_UNREACHABLE_SPEC,
+    502: HTTP_502_CAN_NO_RESPONSE_SPEC
+})
 async def write_adc(
-    mac: Annotated[str, Body(embed=True)],
     config: ADCValues,
-    response: Response,
     network: Network = Depends(get_network)
-) -> None | ConnectionTimeoutError:
+) -> None:
     try:
-        await write_sth_adc(network, mac, config)
-    except Error:
-        response.status_code = status.HTTP_502_BAD_GATEWAY
-        return ConnectionTimeoutError()
+        await write_sth_adc(network, config)
+        return None
+    except TimeoutError:
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
+    except NoResponseError:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
