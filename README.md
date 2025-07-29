@@ -225,7 +225,10 @@ poetry run python3 icoapi/api.py
 
 # Test
 
-**Note:** Running the tests (successfully) requires that you connected a STU to your test system.
+**Note:** Running the tests (successfully) requires that 
+
+- you connected a STU to your test system and
+- at least one sensor device (e.g. STH) is available.
 
 ```sh
 poetry run pytest
