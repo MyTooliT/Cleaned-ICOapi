@@ -29,3 +29,26 @@ async def test_root(client) -> None:
     assert EUI(mac_address) == mac_address
     assert len(sensor_device["name"]) <= 8
     assert 0 >= sensor_device["rssi"] >= -80
+
+
+@mark.anyio
+async def test_connect(client) -> None:
+    """Test endpoint ``/connect``"""
+
+    response = await client.get(sth_prefix)
+
+    assert response.status_code == 200
+    sensor_devices = response.json()
+
+    # We assume that a sensor device with the name `Test-STH` is available and
+    # ready for connection
+    mac_address = None
+    for sensor_device in sensor_devices:
+        if sensor_device["name"] == "Test-STH":
+            mac_address = sensor_device["mac_address"]
+            break
+    assert mac_address is not None
+    assert EUI(mac_address)  # Check for valid MAC address
+    await client.put(f"{sth_prefix}/connect", json={"mac": mac_address})
+
+    await client.put(f"{sth_prefix}/disconnect")
