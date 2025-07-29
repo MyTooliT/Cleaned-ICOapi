@@ -30,17 +30,15 @@ async def test_root(client) -> None:
 async def test_reset(client) -> None:
     """Test endpoint ``/reset``"""
 
-    response = await client.put(f"{stu_prefix}/reset", json={"name": "STU 1"})
+    response = await client.put(f"{stu_prefix}/reset")
 
-    assert response.status_code == 204
+    assert response.status_code == 200
 
 
 @mark.anyio
 async def test_ota(client) -> None:
     """Test endpoint ``/ota/enable``"""
 
-    response = await client.put(
-        f"{stu_prefix}/ota/enable", json={"name": "STU 1"}
-    )
+    response = await client.put(f"{stu_prefix}/ota/enable")
 
-    assert response.status_code == 204
+    assert response.status_code == 200
