@@ -1,22 +1,21 @@
 # -- Imports ------------------------------------------------------------------
 
-from fastapi.testclient import TestClient
 from netaddr import EUI
-
-from icoapi.api import app
+from pytest import mark
 
 # -- Globals ------------------------------------------------------------------
 
-client = TestClient(app)
 stu_prefix = "/api/v1/stu"
 
 # -- Tests --------------------------------------------------------------------
 
 
-def test_root() -> None:
+@mark.anyio
+async def test_root(client) -> None:
     """Test endpoint ``/``"""
 
-    response = client.get(stu_prefix)
+    response = await client.get(stu_prefix)
+
     assert response.status_code == 200
     sth_response = response.json()[0]
     assert sth_response["device_number"] == 1
@@ -25,3 +24,14 @@ def test_root() -> None:
     # string representation) of itself
     assert EUI(mac_address) == mac_address
     assert sth_response["name"] == "STU 1"
+
+
+@mark.anyio
+async def test_ota(client) -> None:
+    """Test endpoint ``/ota/enable``"""
+
+    response = await client.put(
+        f"{stu_prefix}/ota/enable", json={"name": "STU 1"}
+    )
+
+    assert response.status_code == 204
