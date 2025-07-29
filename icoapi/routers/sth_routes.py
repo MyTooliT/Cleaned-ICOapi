@@ -1,8 +1,8 @@
 from typing import Annotated
-
-from fastapi import APIRouter, Body, HTTPException, status, Depends
+from fastapi import APIRouter, Body, Depends
 from mytoolit.can import NoResponseError
 from mytoolit.can.network import Network
+from icoapi.scripts.errors import HTTP_404_STH_UNREACHABLE_EXCEPTION, HTTP_404_STH_UNREACHABLE_SPEC, HTTP_502_CAN_NO_RESPONSE_SPEC, HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 from icoapi.models.models import ADCValues, STHDeviceResponseModel, STHRenameRequestModel, STHRenameResponseModel
 from icoapi.models.globals import get_network
 from icoapi.scripts.sth_scripts import connect_sth_device_by_mac, disconnect_sth_devices, get_sth_devices_from_network, \
@@ -12,49 +12,6 @@ router = APIRouter(
     prefix="/sth",
     tags=["Sensory Tool Holder (STH)"],
 )
-
-HTTP_404_STH_UNREACHABLE_EXCEPTION = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="STH could not be connected and must be out of reach or discharged.")
-HTTP_404_STH_UNREACHABLE_SPEC = {
-    "description": "STH could not be connected and must be out of reach or discharged.",
-    "content": {
-        "application/json": {
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "detail": {"type": "string"},
-                    "status_code": {"type": "integer"},
-                },
-                "required": ["detail", "status_code"]
-            },
-            "example": {
-                "detail": "STH could not be connected and must be out of reach or discharged.",
-                "status_code": 404,
-            },
-        }
-    }
-}
-
-HTTP_502_CAN_NO_RESPONSE_EXCEPTION = HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="The CAN network did not respond to the request.")
-HTTP_502_CAN_NO_RESPONSE_SPEC = {
-    "description": "The CAN network did not respond to the request.",
-    "content": {
-        "application/json": {
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "detail": {"type": "string"},
-                    "status_code": {"type": "integer"},
-                },
-                "required": ["detail", "status_code"]
-            },
-            "example": {
-                "detail": "The CAN network did not respond to the request.",
-                "status_code": 502,
-            },
-        }
-    }
-}
-
 
 @router.get(
     '',
