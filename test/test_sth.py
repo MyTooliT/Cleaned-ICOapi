@@ -35,6 +35,10 @@ async def test_root(client) -> None:
 async def test_connect(client) -> None:
     """Test endpoint ``/connect``"""
 
+    # ========================
+    # = Test Normal Response =
+    # ========================
+
     response = await client.get(sth_prefix)
 
     assert response.status_code == 200
@@ -49,6 +53,20 @@ async def test_connect(client) -> None:
             break
     assert mac_address is not None
     assert EUI(mac_address)  # Check for valid MAC address
-    await client.put(f"{sth_prefix}/connect", json={"mac": mac_address})
+    response = await client.put(
+        f"{sth_prefix}/connect", json={"mac": mac_address}
+    )
+    assert response.status_code == 200
+    assert response.json() is None
 
     await client.put(f"{sth_prefix}/disconnect")
+
+    # =======================
+    # = Test Error Response =
+    # =======================
+
+    response = await client.put(
+        f"{sth_prefix}/connect", json={"mac": "01-02-03-04-05-06"}
+    )
+
+    assert response.status_code == 404
