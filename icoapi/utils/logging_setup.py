@@ -27,6 +27,7 @@ LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
 LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
 LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icodaq")
 LOG_NAME = f"{LOG_NAME_WITHOUT_EXTENSION}.log"
+LOG_LEVEL_UVICORN = os.getenv("LOG_LEVEL_UVICORN", "INFO")
 
 def get_default_log_path() -> str:
     app_folder = "icodaq"
@@ -117,9 +118,9 @@ def setup_logging() -> None:
     logging.getLogger("uvicorn.error").propagate = True
     logging.getLogger("uvicorn.access").propagate = True
 
-    logging.getLogger("uvicorn").setLevel(LOG_LEVEL)
-    logging.getLogger("uvicorn.error").setLevel(LOG_LEVEL)
-    logging.getLogger("uvicorn.access").setLevel(LOG_LEVEL)
+    logging.getLogger("uvicorn").setLevel(LOG_LEVEL_UVICORN)
+    logging.getLogger("uvicorn.error").setLevel(LOG_LEVEL_UVICORN)
+    logging.getLogger("uvicorn.access").setLevel(LOG_LEVEL_UVICORN)
 
 
 def parse_timestamps(lines: list[str]) -> tuple[Optional[str], Optional[str]]:
