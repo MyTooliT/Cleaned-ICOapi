@@ -24,8 +24,7 @@ async def client():
 
 
 @fixture
-async def connect(client):
-
+async def get_test_sensor_node(client):
     sth_prefix = "sth"
     response = await client.get(sth_prefix)
 
@@ -44,7 +43,16 @@ async def connect(client):
     assert mac_address is not None
     assert EUI(mac_address)  # Check for valid MAC address
 
-    mac_address = sensor_node["mac_address"]
+    yield node
+
+
+@fixture
+async def connect(get_test_sensor_node, client):
+    sth_prefix = "sth"
+
+    node = get_test_sensor_node
+
+    mac_address = node["mac_address"]
     response = await client.put(
         join(sth_prefix, "connect"), json={"mac": mac_address}
     )
