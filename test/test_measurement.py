@@ -1,7 +1,5 @@
 # -- Imports ------------------------------------------------------------------
 
-from asyncio import sleep
-
 from pytest import mark
 
 # -- Classes ------------------------------------------------------------------
@@ -34,6 +32,7 @@ class TestSTU:
 
         node = connect
 
+        measurement_status = str(measurement_prefix)
         start = str(measurement_prefix / "start")
         stop = str(measurement_prefix / "stop")
 
@@ -46,7 +45,7 @@ class TestSTU:
             json={
                 "name": node["name"],
                 "mac": node["mac_address"],
-                "time": 0,
+                "time": 10,
                 "first": {
                     "channel_number": 1,
                     "sensor_id": "Acceleration 100g",
@@ -77,8 +76,8 @@ class TestSTU:
             response.json()["message"] == "Measurement started successfully."
         )
 
-        # Wait for measurement to take place
-        await sleep(10)
+        response = await client.get(measurement_status)
+        assert response.status_code == 200
 
         response = await client.post(stop)
 
