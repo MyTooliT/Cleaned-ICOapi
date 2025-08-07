@@ -16,6 +16,11 @@ def anyio_backend():
 
 
 @fixture
+async def measurement_prefix():
+    return Path("measurement")
+
+
+@fixture
 async def sth_prefix():
     return Path("sth")
 
