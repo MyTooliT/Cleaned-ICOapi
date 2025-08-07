@@ -49,7 +49,7 @@ class TestSTU:
                 "time": 0,
                 "first": {
                     "channel_number": 1,
-                    "sensor_id": "Acceleration Sensor",
+                    "sensor_id": "Acceleration 100g",
                 },
                 "second": {
                     "channel_number": 0,
