@@ -24,3 +24,13 @@ class TestSTU:
             "tool_name",
         ):
             assert key in body
+
+    async def test_start(self, measurement_prefix, client) -> None:
+        """Test endpoint ``/start``"""
+
+        # =======================
+        # = Test Error Response =
+        # =======================
+
+        response = await client.post(str(measurement_prefix / "start"))
+        assert response.status_code == 422
