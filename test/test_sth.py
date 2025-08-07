@@ -115,10 +115,8 @@ class TestSTH:
 
         await client.put(join(self.prefix, "disconnect"))
 
-    async def test_read_adc(self, client) -> None:
+    async def test_read_adc(self, client, connect) -> None:
         """Test endpoint ``/read-adc``"""
-
-        await get_and_connect_test_sensor_node(client)
 
         response = await client.get(join(self.prefix, "read-adc"))
         assert response.status_code == 200
@@ -133,8 +131,6 @@ class TestSTH:
             assert isinstance(adc_configuration[attribute], int)
         assert "reference_voltage" in adc_configuration
         assert isinstance(adc_configuration["reference_voltage"], float)
-
-        await client.put(join(self.prefix, "disconnect"))
 
     async def test_write_adc(self, client) -> None:
         """Test endpoint ``/write-adc``"""
