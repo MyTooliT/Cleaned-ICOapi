@@ -13,7 +13,9 @@ class TestSTU:
     async def test_root(self, measurement_prefix, client) -> None:
         """Test endpoint ``/``"""
 
-        response = await client.get(str(measurement_prefix))
+        measurement_status = str(measurement_prefix)
+
+        response = await client.get(measurement_status)
         assert response.status_code == 200
 
         body = response.json()
