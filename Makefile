@@ -58,6 +58,10 @@ start-measurement:
 	  meta[profile]="" \
 	  meta[parameters]:=\{\}
 	  
+.PHONY: measurement-status
+status:
+	http GET "$(URL)/measurement"
+	  
 .PHONY: stop-measurement
 stop-measurement:
 	http POST '$(URL)/measurement/stop'              
