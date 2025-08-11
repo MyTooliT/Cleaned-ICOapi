@@ -23,6 +23,11 @@ async def measurement_prefix():
 
 
 @fixture
+async def state_prefix():
+    return Path("state")
+
+
+@fixture
 async def sth_prefix():
     return Path("sth")
 
