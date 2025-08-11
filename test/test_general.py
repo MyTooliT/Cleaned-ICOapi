@@ -8,8 +8,8 @@ from pytest import mark
 @mark.usefixtures("anyio_backend")
 class TestGeneral:
 
-    async def test_root(self, state_prefix, client) -> None:
-        """Test endpoint ``/``"""
+    async def test_state(self, state_prefix, client) -> None:
+        """Test endpoint ``/state``"""
 
         response = await client.get(str(state_prefix))
 
