@@ -1,4 +1,5 @@
 stages:
+  - build
   - deploy
 
 before_script:
@@ -17,14 +18,48 @@ deploy-revpi-tt:
     - chmod +x install.sh
     - ./install.sh --force
 
-deploy-revpi-mb:
-  only:
-    - main
-  stage: deploy
-  tags:
-    - revpi120532
-    - shell
+#deploy-revpi-mb:
+#  only:
+#    - main
+#  stage: deploy
+#  tags:
+#    - revpi120532
+#    - shell
+#  script:
+#    - echo "$ENV_CONFIG" > .env
+#    - chmod +x install.sh
+#    - ./install.sh --force
+
+variables:
+  # DinD setup
+  DOCKER_TLS_CERTDIR: ""
+  # Tags to push
+  IMAGE_LATEST: "$CI_REGISTRY_IMAGE:latest"
+  IMAGE_SHA: "$CI_REGISTRY_IMAGE:${CI_COMMIT_SHORT_SHA}"
+
+build_and_push:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - name: docker:24.0.5-dind
+      command: ["--mtu=1460"]   # optional; helps in some runners
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  before_script:
+    - echo "Logging in to $CI_REGISTRY as $CI_REGISTRY_USER"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker info
   script:
-    - echo "$ENV_CONFIG" > .env
-    - chmod +x install.sh
-    - ./install.sh --force
+    # Build the image; pass API port if your Dockerfile uses it at build-time
+    - |
+      echo "Building $IMAGE_LATEST and $IMAGE_SHA"
+      if [ -n "$VITE_API_PORT" ]; then
+        docker build \
+          --build-arg VITE_API_PORT="$VITE_API_PORT" \
+          -t "$IMAGE_LATEST" -t "$IMAGE_SHA" .
+      else
+        docker build -t "$IMAGE_LATEST" -t "$IMAGE_SHA" .
+      fi
+    # Push both tags
+    - docker push "$IMAGE_LATEST"
+    - docker push "$IMAGE_SHA"
