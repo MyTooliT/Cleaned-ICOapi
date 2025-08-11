@@ -195,6 +195,7 @@ class GeneralMessenger:
     async def push_messenger_update(cls):
         cloud = await get_trident_client()
         cloud_ready = cloud.is_authenticated()
+        state = await get_measurement_state()
         for client in cls._clients:
             await client.send_json(SocketMessage(
                 message="state",
@@ -202,7 +203,7 @@ class GeneralMessenger:
                     can_ready=NetworkSingleton.has_instance(),
                     disk_capacity=get_disk_space_in_gb(),
                     cloud_status=bool(cloud_ready),
-                    measurement_status=get_measurement_state().get_status()
+                    measurement_status=state.get_status()
             )).model_dump())
 
         if(len(cls._clients)) > 0:
