@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI):
 
     try:
         await NetworkSingleton.create_instance_if_none()
-    except CANInitError:
-        print("Error initializing CAN network. CAN adapter may not be connected.")
+    except Exception as e:
+        logger.error(f"Error when initializing CAN network: {e}")
     yield
     MeasurementSingleton.clear_clients()
     await NetworkSingleton.close_instance()

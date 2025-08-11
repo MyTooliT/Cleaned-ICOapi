@@ -2,7 +2,7 @@ import asyncio
 import logging
 from os import getenv
 from typing import Any, List
-from mytoolit.can.network import Network
+from mytoolit.can.network import CANInitError, Network
 from starlette.websockets import WebSocket
 
 from icoapi.models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel
@@ -27,12 +27,15 @@ class NetworkSingleton:
 
     @classmethod
     async def create_instance_if_none(cls):
-        async with cls._lock:
-            if cls._instance is None:
-                cls._instance = Network()
-                await cls._instance.__aenter__()
-                await get_messenger().push_messenger_update()
-                logger.info(f"Created CAN Network instance with ID <{id(cls._instance)}>")
+        try:
+            async with cls._lock:
+                if cls._instance is None:
+                    cls._instance = Network()
+                    await cls._instance.__aenter__()
+                    await get_messenger().push_messenger_update()
+                    logger.info(f"Created CAN Network instance with ID <{id(cls._instance)}>")
+        except CANInitError:
+            logger.error("Cannot establish CAN connection")
 
     @classmethod
     async def get_instance(cls):
