@@ -36,6 +36,13 @@ class TestSTU:
         start = str(measurement_prefix / "start")
         stop = str(measurement_prefix / "stop")
 
+        adc_config = {
+            "prescaler": 2,
+            "acquisition_time": 8,
+            "oversampling_rate": 64,
+            "reference_voltage": 3.3,
+        }
+
         # ========================
         # = Test Normal Response =
         # ========================
@@ -61,12 +68,7 @@ class TestSTU:
                 "ift_requested": False,
                 "ift_channel": "",
                 "ift_window_width": 0,
-                "adc": {
-                    "prescaler": 2,
-                    "acquisition_time": 8,
-                    "oversampling_rate": 64,
-                    "reference_voltage": 3.3,
-                },
+                "adc": adc_config,
                 "meta": {"version": "", "profile": "", "parameters": {}},
             },
         )
@@ -78,6 +80,9 @@ class TestSTU:
 
         response = await client.get(measurement_status)
         assert response.status_code == 200
+        body = response.json()
+        instructions = body["instructions"]
+        assert instructions["adc"] == adc_config
 
         response = await client.post(stop)
 
