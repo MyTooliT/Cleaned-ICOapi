@@ -42,6 +42,14 @@ class TestSTU:
             "oversampling_rate": 64,
             "reference_voltage": 3.3,
         }
+        sensor = {
+            "channel_number": 1,
+            "sensor_id": "acc100g_01",
+        }
+        disabled = {
+            "channel_number": 0,
+            "sensor_id": "",
+        }
 
         # ========================
         # = Test Normal Response =
@@ -53,18 +61,9 @@ class TestSTU:
                 "name": node["name"],
                 "mac": node["mac_address"],
                 "time": 10,
-                "first": {
-                    "channel_number": 1,
-                    "sensor_id": "acc100g_01",
-                },
-                "second": {
-                    "channel_number": 0,
-                    "sensor_id": "",
-                },
-                "third": {
-                    "channel_number": 0,
-                    "sensor_id": "",
-                },
+                "first": sensor,
+                "second": disabled,
+                "third": disabled,
                 "ift_requested": False,
                 "ift_channel": "",
                 "ift_window_width": 0,
@@ -83,6 +82,7 @@ class TestSTU:
         body = response.json()
         instructions = body["instructions"]
         assert instructions["adc"] == adc_config
+        assert instructions["first"] == sensor
 
         response = await client.post(stop)
 
