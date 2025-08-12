@@ -40,7 +40,7 @@ start-measurement:
 	http POST "$(URL)/measurement/start" \
 	  name="$(NAME)" \
 	  mac="$(MAC_ADDRESS)" \
-	  time=10 \
+	  time=100 \
 	  first[channel_number]:=1 \
 	  first[sensor_id]="acc100g_01" \
 	  second[channel_number]:=0 \
