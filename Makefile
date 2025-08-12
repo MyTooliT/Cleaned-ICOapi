@@ -2,7 +2,9 @@
 
 MODULE = icoapi
 TEST_DIRECTORY = test
-URL = http://localhost:33215/api/v1
+LOCATION = localhost:33215/api/v1
+WS_URL = ws://$(LOCATION)
+HTTP_URL = http://$(LOCATION)
 MAC_ADDRESS = 08-6B-D7-01-DE-81
 NAME = "Test-STH"
 
@@ -25,19 +27,19 @@ run: check
 	
 .PHONY: reset
 reset:
-	http PUT "$(URL)/stu/reset"
+	http PUT "$(HTTP_URL)/stu/reset"
 
 .PHONY: connect
 connect:
-	http PUT "$(URL)/sth/connect" mac=$(MAC_ADDRESS)
+	http PUT "$(HTTP_URL)/sth/connect" mac=$(MAC_ADDRESS)
 	
 .PHONY: disconnect
 disconnect:
-	http PUT "$(URL)/sth/disconnect"
+	http PUT "$(HTTP_URL)/sth/disconnect"
 	
 .PHONY: start-measurement
 start-measurement:
-	http POST "$(URL)/measurement/start" \
+	http POST "$(HTTP_URL)/measurement/start" \
 	  name="$(NAME)" \
 	  mac="$(MAC_ADDRESS)" \
 	  time=100 \
@@ -60,8 +62,12 @@ start-measurement:
 	  
 .PHONY: measurement-status
 status:
-	http GET "$(URL)/measurement"
+	http GET "$(HTTP_URL)/measurement"
+	
+.PHONY: stream
+stream:
+	http '$(WS_URL)/measurement/stream'
 	  
 .PHONY: stop-measurement
 stop-measurement:
-	http POST '$(URL)/measurement/stop'              
+	http POST '$(HTTP_URL)/measurement/stop'
