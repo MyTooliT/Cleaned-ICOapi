@@ -87,3 +87,37 @@ class TestMeasurement:
 
         response = client.post(start)
         assert response.status_code == 422
+
+    def test_stream(self, measurement, measurement_prefix, client) -> None:
+        """Check WebSocket streaming data"""
+
+        measurement
+
+        measurement_status = str(measurement_prefix)
+
+        response = client.get(measurement_status)
+        assert response.status_code == 200
+        assert response.json()["running"] is True
+
+        ws_url = str(client.base_url).replace("http", "ws")
+        stream = f"{ws_url}{measurement_prefix}/stream"
+
+        with client.websocket_connect(stream) as websocket:
+            data = websocket.receive_json()
+            message = data[0]
+            for key in (
+                "timestamp",
+                "first",
+                "second",
+                "third",
+                "ift",
+                "counter",
+                "dataloss",
+            ):
+                assert key in message
+            assert message["timestamp"] >= 0
+            assert -100 <= message["first"] <= 100
+            assert message["second"] is None
+            assert message["third"] is None
+            assert 0 <= message["counter"] <= 255
+            assert message["ift"] is None

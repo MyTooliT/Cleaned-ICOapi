@@ -1,6 +1,7 @@
 # -- Imports ------------------------------------------------------------------
 
 from pathlib import Path
+from time import sleep
 
 from fastapi.testclient import TestClient
 from netaddr import EUI
@@ -86,3 +87,56 @@ def connect(sth_prefix, get_test_sensor_node, client):
     yield node
 
     client.put(str(sth_prefix / "disconnect"))
+
+
+@fixture
+def measurement(measurement_prefix, connect, client):
+    node = connect
+
+    start = str(measurement_prefix / "start")
+    stop = str(measurement_prefix / "stop")
+
+    adc_config = {
+        "prescaler": 2,
+        "acquisition_time": 8,
+        "oversampling_rate": 64,
+        "reference_voltage": 3.3,
+    }
+    sensor = {
+        "channel_number": 1,
+        "sensor_id": "acc100g_01",
+    }
+    disabled = {
+        "channel_number": 0,
+        "sensor_id": "",
+    }
+
+    # ========================
+    # = Test Normal Response =
+    # ========================
+
+    response = client.post(
+        start,
+        json={
+            "name": node["name"],
+            "mac": node["mac_address"],
+            "time": 10,
+            "first": sensor,
+            "second": disabled,
+            "third": disabled,
+            "ift_requested": False,
+            "ift_channel": "",
+            "ift_window_width": 0,
+            "adc": adc_config,
+            "meta": {"version": "", "profile": "", "parameters": {}},
+        },
+    )
+
+    assert response.status_code == 200
+
+    # Wait for WebSocket to be ready
+    sleep(5)
+
+    yield
+
+    response = client.post(stop)
