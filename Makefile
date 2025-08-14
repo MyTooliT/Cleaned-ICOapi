@@ -23,7 +23,7 @@ test:
 
 .PHONY: run
 run: check
-	poetry run python3 $(MODULE)/api.py
+	poetry run python $(MODULE)/api.py
 	
 .PHONY: reset
 reset:
