@@ -36,6 +36,9 @@ connect:
 .PHONY: disconnect
 disconnect:
 	http PUT "$(HTTP_URL)/sth/disconnect"
+.PHONY: sensor
+sensor:
+	http GET $(HTTP_URL)/sensor
 	
 .PHONY: start-measurement
 start-measurement:
