@@ -27,27 +27,28 @@ run: check
 	
 .PHONY: reset
 reset:
-	http PUT "$(HTTP_URL)/stu/reset"
+	http PUT $(HTTP_URL)/stu/reset
 
 .PHONY: connect
 connect:
-	http PUT "$(HTTP_URL)/sth/connect" mac=$(MAC_ADDRESS)
+	http PUT $(HTTP_URL)/sth/connect mac=$(MAC_ADDRESS)
 	
 .PHONY: disconnect
 disconnect:
-	http PUT "$(HTTP_URL)/sth/disconnect"
+	http PUT $(HTTP_URL)/sth/disconnect
+	
 .PHONY: sensor
 sensor:
 	http GET $(HTTP_URL)/sensor
 	
 .PHONY: start-measurement
 start-measurement:
-	http POST "$(HTTP_URL)/measurement/start" \
-	  name="$(NAME)" \
-	  mac="$(MAC_ADDRESS)" \
+	http POST $(HTTP_URL)/measurement/start \
+	  name=$(NAME) \
+	  mac=$(MAC_ADDRESS) \
 	  time=100 \
 	  first[channel_number]:=1 \
-	  first[sensor_id]="acc100g_01" \
+	  first[sensor_id]=acc100g_01 \
 	  second[channel_number]:=0 \
 	  second[sensor_id]="" \
 	  third[channel_number]:=0 \
@@ -69,8 +70,8 @@ status:
 	
 .PHONY: stream
 stream:
-	http '$(WS_URL)/measurement/stream'
+	http $(WS_URL)/measurement/stream
 	  
 .PHONY: stop-measurement
 stop-measurement:
-	http POST '$(HTTP_URL)/measurement/stop'
+	http POST $(HTTP_URL)/measurement/stop
