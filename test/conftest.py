@@ -85,11 +85,9 @@ def connect(sth_prefix, get_test_sensor_node, client):
 
 
 @fixture
-def measurement(measurement_prefix, connect, client):
-    node = connect
+def measurement_configuration(connect):
 
-    start = f"{measurement_prefix}/start"
-    stop = f"{measurement_prefix}/stop"
+    node = connect
 
     adc_config = {
         "prescaler": 2,
@@ -106,26 +104,34 @@ def measurement(measurement_prefix, connect, client):
         "sensor_id": None,
     }
 
+    configuration = {
+        "name": node["name"],
+        "mac": node["mac_address"],
+        "time": 10,
+        "first": sensor,
+        "second": disabled,
+        "third": disabled,
+        "ift_requested": False,
+        "ift_channel": "",
+        "ift_window_width": 0,
+        "adc": adc_config,
+        "meta": {"version": "", "profile": "", "parameters": {}},
+    }
+
+    return configuration
+
+
+@fixture
+def measurement(measurement_prefix, measurement_configuration, client):
+
+    start = f"{measurement_prefix}/start"
+    stop = f"{measurement_prefix}/stop"
+
     # ========================
     # = Test Normal Response =
     # ========================
 
-    response = client.post(
-        start,
-        json={
-            "name": node["name"],
-            "mac": node["mac_address"],
-            "time": 10,
-            "first": sensor,
-            "second": disabled,
-            "third": disabled,
-            "ift_requested": False,
-            "ift_channel": "",
-            "ift_window_width": 0,
-            "adc": adc_config,
-            "meta": {"version": "", "profile": "", "parameters": {}},
-        },
-    )
+    response = client.post(start, json=measurement_configuration)
 
     assert response.status_code == 200
 
