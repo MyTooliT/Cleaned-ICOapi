@@ -6,7 +6,7 @@ class TestMeasurement:
     def test_root(self, measurement_prefix, client) -> None:
         """Test endpoint ``/``"""
 
-        measurement_status = str(measurement_prefix)
+        measurement_status = measurement_prefix
 
         response = client.get(measurement_status)
         assert response.status_code == 200
@@ -27,9 +27,9 @@ class TestMeasurement:
 
         node = connect
 
-        measurement_status = str(measurement_prefix)
-        start = str(measurement_prefix / "start")
-        stop = str(measurement_prefix / "stop")
+        measurement_status = measurement_prefix
+        start = f"{measurement_prefix}/start"
+        stop = f"{measurement_prefix}/stop"
 
         adc_config = {
             "prescaler": 2,

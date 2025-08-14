@@ -1,7 +1,5 @@
 # -- Imports ------------------------------------------------------------------
 
-from pathlib import Path
-
 from fastapi.testclient import TestClient
 from netaddr import EUI
 from pytest import fixture
@@ -18,27 +16,27 @@ def anyio_backend():
 
 @fixture
 def measurement_prefix():
-    return Path("measurement")
+    return "measurement"
 
 
 @fixture
 def reset_can_prefix():
-    return Path("reset-can")
+    return "reset-can"
 
 
 @fixture
 def state_prefix():
-    return Path("state")
+    return "state"
 
 
 @fixture
 def sth_prefix():
-    return Path("sth")
+    return "sth"
 
 
 @fixture
 def stu_prefix():
-    return Path("stu")
+    return "stu"
 
 
 @fixture(scope="session")
@@ -77,23 +75,21 @@ def connect(sth_prefix, get_test_sensor_node, client):
     node = get_test_sensor_node
 
     mac_address = node["mac_address"]
-    response = client.put(
-        str(sth_prefix / "connect"), json={"mac": mac_address}
-    )
+    response = client.put(f"{sth_prefix}/connect", json={"mac": mac_address})
     assert response.status_code == 200
     assert response.json() is None
 
     yield node
 
-    client.put(str(sth_prefix / "disconnect"))
+    client.put(f"{sth_prefix}/disconnect")
 
 
 @fixture
 def measurement(measurement_prefix, connect, client):
     node = connect
 
-    start = str(measurement_prefix / "start")
-    stop = str(measurement_prefix / "stop")
+    start = f"{measurement_prefix}/start"
+    stop = f"{measurement_prefix}/stop"
 
     adc_config = {
         "prescaler": 2,

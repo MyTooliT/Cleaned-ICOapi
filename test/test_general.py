@@ -6,7 +6,7 @@ class TestGeneral:
     def test_state(self, state_prefix, client) -> None:
         """Test endpoint ``/state``"""
 
-        response = client.get(str(state_prefix))
+        response = client.get(state_prefix)
 
         assert response.status_code == 200
 
@@ -25,7 +25,7 @@ class TestGeneral:
     def test_reset_can(self, reset_can_prefix, client) -> None:
         """Test endpoint ``reset-can``"""
 
-        response = client.put("/reset-can")
+        response = client.put(reset_can_prefix)
 
         assert response.status_code == 200
         assert response.json() is None
