@@ -25,6 +25,7 @@ async def start_measurement(
         general_messenger=Depends(get_messenger)
 ):
     message: str = "Measurement is already running."
+    measurement_state.stop_flag = False
 
     if not measurement_state.running:
         start = datetime.datetime.now()
