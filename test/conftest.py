@@ -107,7 +107,7 @@ def measurement(measurement_prefix, connect, client):
     }
     disabled = {
         "channel_number": 0,
-        "sensor_id": "",
+        "sensor_id": None,
     }
 
     # ========================
