@@ -104,6 +104,8 @@ class TestMeasurement:
 
         with client.websocket_connect(stream) as websocket:
             data = websocket.receive_json()
+            assert isinstance(data, list)
+            assert len(data) >= 1
             message = data[0]
             for key in (
                 "timestamp",
