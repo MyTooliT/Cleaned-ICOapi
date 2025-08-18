@@ -230,6 +230,25 @@ For any other usage or for local development, run:
 poetry run python3 icoapi/api.py
 ```
 
+## Docker
+
+You can use our [`Dockerfile`](Dockerfile) to build a [Docker](https://www.docker.com) image for the API:
+
+```sh
+docker build -t icoapi .
+```
+
+To run a container based on the image you can use the following command:
+
+```sh
+docker run --network=host icoapi
+```
+
+**Note:** The option `--network=host` is required to give the container access to the CAN adapter. As far as we know using the CAN adapter this way only works on a **Linux host**. For other **more secure options** to map the CAN adapter into the container, please take a look at:
+
+- the [documentation of the ICOtronic library](https://mytoolit.github.io/ICOtronic/#docker-on-linux), and
+- the article [“SocketCAN mit Docker unter Linux”](https://chemnitzer.linux-tage.de/2021/de/programm/beitrag/210/).
+
 # Test
 
 **Note:** Running the tests (successfully) requires that 
