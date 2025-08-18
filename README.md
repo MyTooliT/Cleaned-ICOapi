@@ -18,6 +18,13 @@ This repository can be setup manually for Windows and Linux or using the install
 - Python 3.10+, from the official [Python Website](https://www.python.org/downloads/)
 - [Poetry](https://python-poetry.org) (for development)
 
+### Linux
+
+On Linux, the API (rather: the underlying CAN library) requires:
+- The proper driver for your CAN device (PCAN-USB if used)
+- The CAN port set up as described in [this guide](https://mytoolit.github.io/ICOc/#introduction:section:pcan-driver:linux)
+  - Including the setup for ``systemd-networkd``!
+
 ## Manual Installation (Development)
 
 ```
