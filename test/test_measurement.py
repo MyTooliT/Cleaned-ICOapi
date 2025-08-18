@@ -59,6 +59,14 @@ class TestMeasurement:
 
         response = client.post(start)
         assert response.status_code == 422
+        assert response.json() == {
+            "detail": [{
+                "input": None,
+                "loc": ["body"],
+                "msg": "Field required",
+                "type": "missing",
+            }]
+        }
 
     def test_stream(self, measurement, measurement_prefix, client) -> None:
         """Check WebSocket streaming data"""
