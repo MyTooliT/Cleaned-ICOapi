@@ -61,8 +61,6 @@ class TestMeasurement:
     def test_stream(self, measurement, measurement_prefix, client) -> None:
         """Check WebSocket streaming data"""
 
-        measurement
-
         measurement_status = str(measurement_prefix)
 
         response = client.get(measurement_status)
