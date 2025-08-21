@@ -2,36 +2,69 @@
 
 A REST and WebSocket API using the Python FastAPI library. You can find the official documentation [here](https://fastapi.tiangolo.com/).
 
-We currently support
+We currently support all operating systems which can run Python 3.10. and use a CAN interface properly
 
-- Windows 10+,
-- Debian/Linux, and
-- macOS.
+When the API is running, it hosts an OpenAPI compliant documentation under `/docs`, e.g. under [`localhost:33215/docs`](http://localhost:33215/docs).
 
-Additionally, when the API is running, it hosts an OpenAPI compliant documentation under `/docs`, e.g. under [`localhost:33215/docs`](http://localhost:33215/docs).
-# Installation
+# Hardware
 
-This repository can be setup manually for Windows and Linux or using the installation script for Linux.
+This API is designed to interact with the ICOtronic system and thus only reasonably works with this system connected.
 
-## Prerequisites
+To get a complete experience, even for development, you need:
+- A CAN interface (usually either PCAN-USB or the RevPi CAN Module)
+- The proper drivers
 
-- Python 3.10+, from the official [Python Website](https://www.python.org/downloads/)
-- [Poetry](https://python-poetry.org) (for development)
-
-### Linux
+## Linux
 
 On Linux, the API (rather: the underlying CAN library) requires:
 - The proper driver for your CAN device (PCAN-USB if used)
 - The CAN port set up as described in [this guide](https://mytoolit.github.io/ICOc/#introduction:section:pcan-driver:linux)
   - Including the setup for ``systemd-networkd``!
 
-## Manual Installation (Development)
 
-```
+# Installation for Development
+
+This repository can be setup manually, installed as a system service on Linux-based systems or deployed using Docker on 
+Linux-based systems.
+
+If none of the versions for deploying properly (see chapter [Run](#run)) work for you, you can always "deploy" by 
+cloning this repository and running the Python script manually.
+
+## Prerequisites
+
+- Python 3.10+, from the official [Python Website](https://www.python.org/downloads/)
+- [Poetry](https://python-poetry.org)
+- Support for Python virtual environments (recommended)
+
+Clone the repository and navigate into it to set up your virtual environment:
+
+``git clone ... && cd ...``
+
+``python -m venv .venv``
+
+``source ./.venv/bin/activate`` on Linux or ``.\.venv\Scripts\activate`` on Windows
+
+Then run the following command to get up and running:
+
+```shell
 poetry lock && poetry install --all-extras
 ```
 
-## Service Installation (Linux)
+Once you have that, get a baseline `.env` and run the API:
+
+```shell
+cp example.env .env
+```
+
+```shell
+poetry run python3 icoapi/api.py
+```
+
+# Run
+
+Proper deployment (automatic restart, etc.) can be done using the system service installation or Docker.
+
+## System Service Installation (Linux)
 
 For Linux, there is an installation script which sets the directory for the actual installation, the directory for the
 systemd service and the used systemd service name. The (sensible) defaults are:
@@ -59,6 +92,28 @@ Or, if you want to delete existing installations and do a clean reinstall, add t
 ```sh
 ./install.sh --force
 ```
+
+## Docker (Linux)
+
+You can use our [`Dockerfile`](Dockerfile) to build a [Docker](https://www.docker.com) image for the API:
+
+```sh
+docker build -t icoapi .
+```
+
+To run a container based on the image you can use the following command:
+
+```sh
+docker run --network=host icoapi
+```
+
+**Note:** The option `--network=host` is required to give the container access to the CAN adapter. As far as we know using the CAN adapter this way only works on a **Linux host**. For other **more secure options** to map the CAN adapter into the container, please take a look at:
+
+- the [documentation of the ICOtronic library](https://mytoolit.github.io/ICOtronic/#docker-on-linux), and
+- the article [“SocketCAN mit Docker unter Linux”](https://chemnitzer.linux-tage.de/2021/de/programm/beitrag/210/).
+
+
+
 
 # Configuration / Environment Variables
 
@@ -105,17 +160,14 @@ VITE_BACKEND_MEASUREMENT_DIR=icodaq
 VITE_BACKEND_FULL_MEASUREMENT_PATH=C:\Users\breurather\AppData\Local\icodaq
 ```
 
-`VITE_BACKEND_MEASUREMENT_DIR` expects a single folder name and locates that folder under a certain path
-- On Windows, that path is `%LocalAppData%`
-- On Linux, it is the first available of:
-  - `$XDG_DATA_DIRS`
-  - `"/usr/local/share:/usr/share"`
-- On macOS it is the directory `Library/Application Support` in the user’s home folder
+`VITE_BACKEND_MEASUREMENT_DIR` expects a single folder name and locates that folder under a certain path. 
+We use the `user_data_dir()` from the package `platformdirs` to simplify this. The system always logs which folder is used for storage.
 
 `VITE_BACKEND_FULL_MEASUREMENT_PATH` lets you override the default pathing and tries to create the folder at your
 supplied location.
 - Use this at your own discretion as not having a writable directory for measurements will crash the program.
-- This is unfortunately not OS-agnostic for now.
+- This is—by design—not OS-agnostic.
+- You may need admin / root privileges for your folder!
 
 ### Trident Data Storage Settings
 
@@ -218,36 +270,6 @@ Each used sensor has a datasheet and associated linear coefficients to get from 
 
 The API now accepts a ``sensor_id`` which can be used to choose a unique sensor for the conversion and has the current
 IFT channel-sensor-layout as defaults.
-
-# Run
-
-On Linux, if the installation script was used, the service runs automatically - but as-is, without any updates on
-changes to the repository as the service simply installs the current version.
-
-For any other usage or for local development, run:
-
-```shell
-poetry run python3 icoapi/api.py
-```
-
-## Docker
-
-You can use our [`Dockerfile`](Dockerfile) to build a [Docker](https://www.docker.com) image for the API:
-
-```sh
-docker build -t icoapi .
-```
-
-To run a container based on the image you can use the following command:
-
-```sh
-docker run --network=host icoapi
-```
-
-**Note:** The option `--network=host` is required to give the container access to the CAN adapter. As far as we know using the CAN adapter this way only works on a **Linux host**. For other **more secure options** to map the CAN adapter into the container, please take a look at:
-
-- the [documentation of the ICOtronic library](https://mytoolit.github.io/ICOtronic/#docker-on-linux), and
-- the article [“SocketCAN mit Docker unter Linux”](https://chemnitzer.linux-tage.de/2021/de/programm/beitrag/210/).
 
 # Test
 
