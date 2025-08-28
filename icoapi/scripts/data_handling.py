@@ -142,6 +142,7 @@ class SensorDescription(IsDescription):
     sensor_type = StringCol(itemsize=100)  # Fixed-size string for the sensor type
     sensor_id = StringCol(itemsize=100)  # Fixed-size string for the sensor ID
     unit = StringCol(itemsize=10)  # Fixed-size string for the unit
+    dimension = StringCol(itemsize=100)  # Fixed-size string for the unit
     phys_min = Float32Col()  # Float for physical minimum
     phys_max = Float32Col()  # Float for physical maximum
     volt_min = Float32Col()  # Float for voltage minimum
@@ -169,6 +170,7 @@ def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> N
         row['sensor_type'] = sensor.sensor_type if sensor.sensor_type else ''
         row['sensor_id'] = sensor.sensor_id
         row['unit'] = sensor.unit.encode()
+        row['dimension'] = sensor.dimension.encode()
         row['phys_min'] = sensor.phys_min
         row['phys_max'] = sensor.phys_max
         row['volt_min'] = sensor.volt_min
