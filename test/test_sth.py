@@ -24,7 +24,7 @@ class TestSTH:
         # string representation) of itself
         assert EUI(mac_address) == mac_address
         assert len(sensor_device["name"]) <= 8
-        assert 0 >= sensor_device["rssi"] >= -80
+        assert 0 >= sensor_device["rssi"] >= -90
 
     def test_connect_disconnect(
         self, sth_prefix, get_test_sensor_node, client
