@@ -109,12 +109,23 @@ sensors:
   dimension: Voltage
   volt_max: 0.737
   volt_min: 0.509
-- name: Gyro
+- name: Rot. Acceleration (SB)
   offset: -98100.000
   phys_max: 78480.0
   phys_min: -78480.0
   scaling_factor: 59454.54545
-  sensor_id: gyro_01
+  sensor_id: rotacc_01
+  sensor_type: 2xADXL1001
+  unit: 1/s^2
+  dimension: Rotational Acceleration
+  volt_max: 2.97
+  volt_min: 0.33
+- name: Rot. Acceleration (3-Plat.)
+  offset: -77122.642
+  phys_max: 61698.11321
+  phys_min: -61698.11321
+  scaling_factor: 46740.99485
+  sensor_id: rotacc_02
   sensor_type: 2xADXL1001
   unit: 1/s^2
   dimension: Rotational Acceleration
@@ -125,31 +136,27 @@ sensor_configurations:
   - configuration_id: default-sth
     configuration_name: Default IFT STH
     channels:
-      1:  { sensor_id: acc100g_01 }
-      2:  { sensor_id: acc40g_x }
-      3:  { sensor_id: acc40g_y }
-      4:  { sensor_id: acc40g_z }
-      5:  { sensor_id: temp_01 }
-      6:  { sensor_id: photo_01 }
-      7:  { sensor_id: backpack_01 }
-      8:  { sensor_id: backpack_02 }
-      9:  { sensor_id: backpack_03 }
+      1: { sensor_id: acc100g_01 }
+      2: { sensor_id: acc40g_y }
+      3: { sensor_id: acc40g_z }
+      4: { sensor_id: acc40g_x }
+      5: { sensor_id: temp_01 }
+      6: { sensor_id: photo_01 }
+      7: { sensor_id: backpack_01 }
+      8: { sensor_id: backpack_02 }
+      9: { sensor_id: backpack_03 }
       10: { sensor_id: vbat_01 }
 
-  - configuration_id: single-sth
-    configuration_name: Single Axis STH
-    channels:
-      1: { sensor_id: acc100g_01 }
-
-  - configuration_id: CIRP_STH
-    configuration_name: CIRP TWM
-    channels:
-      1: { sensor_id: acc100g_01 }
-
-  - configuration_id: GYRO
-    configuration_name: GYRO
+  - configuration_id: botek_DRILL
+    configuration_name: botek DRILL
     channels:
       1:  { sensor_id: acc100g_01 }
       6:  { sensor_id: photo_01 }
-      8:  { sensor_id: gyro_01 }
+      8:  { sensor_id: rotacc_01 }
       10: { sensor_id: vbat_01 }
+
+  - configuration_id: botek_DRILL_3p
+    configuration_name: botek DRILL 3P
+    channels:
+      1: { sensor_id: acc100g_01 }
+      2: { sensor_id: rotacc_02 }

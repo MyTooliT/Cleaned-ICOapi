@@ -157,6 +157,10 @@ def write_pre_metadata(instructions: MeasurementInstructions, storage: StorageDa
         logger.info("No pre-measurement metadata provided")
         return
 
+    picture_parameters = find_picture_parameters(instructions.meta)
+    if picture_parameters and len(picture_parameters) > 0:
+        write_and_remove_picture_metadata(picture_parameters, instructions.meta, storage)
+
     storage.add_acceleration_meta(
         "metadata_version", instructions.meta.version
     )
@@ -185,15 +189,7 @@ def write_post_metadata(meta: Metadata, storage: StorageData) -> None:
 
     picture_parameters = find_picture_parameters(meta)
     if picture_parameters and len(picture_parameters) > 0:
-        for param in picture_parameters:
-            encoded_images: list[str] = []
-            for encoded_image in meta.parameters[param].values():
-                encoded_images.append(encoded_image.encode("utf-8"))
-            max_string_length = max(len(s) for s in encoded_images)
-            nd_array = np.array(encoded_images, dtype=f"S{max_string_length}")
-            storage.hdf.create_array(storage.hdf.root, param, nd_array)
-            logger.info(f"Added {len(nd_array)} picture(s) for parameter {param} to storage")
-            del meta.parameters[param]
+        write_and_remove_picture_metadata(picture_parameters, meta, storage)
 
     meta_dump = json.dumps(meta.__dict__, default=lambda o: o.__dict__)
     storage.add_acceleration_meta(
@@ -201,7 +197,19 @@ def write_post_metadata(meta: Metadata, storage: StorageData) -> None:
     )
     logger.info("Added post-measurement metadata")
 
-
+def write_and_remove_picture_metadata(picture_parameters: list[str], meta: Metadata, storage: StorageData):
+    for param in picture_parameters:
+        encoded_images: list[str] = []
+        for encoded_image in meta.parameters[param].values():
+            encoded_images.append(encoded_image.encode("utf-8"))
+        try:
+            max_string_length = max(len(s) for s in encoded_images)
+            nd_array = np.array(encoded_images, dtype=f"S{max_string_length}")
+            storage.hdf.create_array(storage.hdf.root, param, nd_array)
+            logger.info(f"Added {len(nd_array)} picture(s) for parameter {param} to storage")
+            del meta.parameters[param]
+        except ValueError:
+            logger.warning(f"Could not add pictures for parameter {param} to storage")
 
 def get_sendable_data_and_apply_conversion(streaming_configuration: StreamingConfiguration, sensor_info: MeasurementSensorInfo, data: StreamingData) -> DataValueModel:
     first_channel_sensor, second_channel_sensor, third_channel_sensor, voltage_scaling = sensor_info.get_values()
