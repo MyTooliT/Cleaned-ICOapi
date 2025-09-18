@@ -255,11 +255,28 @@ def node_to_dict(node):
 
 def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
     with tables.open_file(file_path, mode="r") as file_handle:
+
+        picture_node_names = get_picture_node_names(file_handle)
+        pictures: dict[str, list[str]] = {}
+        for node_name in picture_node_names:
+            node = file_handle.get_node(node_name)
+            assert isinstance(node, tables.Array)
+            pictures[node_name.removeprefix('/')] = [img.decode('utf-8') for img in node.read().tolist()]
+
         try:
             acceleration_data = file_handle.get_node("/acceleration")
             assert isinstance(acceleration_data, tables.Table)
             acceleration_df = pd.DataFrame.from_records(acceleration_data.read(), columns=acceleration_data.colnames)
             acceleration_meta = node_to_dict(acceleration_data)
+            for pics_key in pictures.keys():
+                if "pre" in pics_key:
+                    acceleration_meta.attributes["pre_metadata"]["parameters"][pics_key.strip("pre__")] = pictures[pics_key]
+                elif "post" in pics_key:
+                    acceleration_meta.attributes["post_metadata"]["parameters"][pics_key.strip("post__")] = pictures[pics_key]
+                else:
+                    logger.error(f"Unknown picture key: {pics_key}")
+
+
         except NoSuchNodeError:
             raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
         except AssertionError:
@@ -276,13 +293,6 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
         except AssertionError:
             # sensor data available, but not in the right shape
             pass
-
-        picture_node_names = get_picture_node_names(file_handle)
-        pictures: dict[str, list[str]] = {}
-        for node_name in picture_node_names:
-            node = file_handle.get_node(node_name)
-            assert isinstance(node, tables.Array)
-            pictures[node_name.removeprefix('/')] = [img.decode('utf-8') for img in node.read().tolist()]
 
 
     return ParsedHDF5FileContent(
