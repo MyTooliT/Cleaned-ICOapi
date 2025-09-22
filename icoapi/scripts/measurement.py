@@ -161,12 +161,6 @@ def write_pre_metadata(instructions: MeasurementInstructions, storage: StorageDa
     if picture_parameters and len(picture_parameters) > 0:
         write_and_remove_picture_metadata("pre", picture_parameters, instructions.meta, storage)
 
-    storage.add_acceleration_meta(
-        "metadata_version", instructions.meta.version
-    )
-    storage.add_acceleration_meta(
-        "metadata_profile", instructions.meta.profile
-    )
     meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
     storage.add_acceleration_meta(
         "pre_metadata", meta_dump
