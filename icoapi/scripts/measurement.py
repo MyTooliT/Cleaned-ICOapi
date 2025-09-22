@@ -17,7 +17,7 @@ from starlette.websockets import WebSocketDisconnect
 from icoapi.scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
 from icoapi.scripts.file_handling import get_measurement_dir
 from icoapi.models.globals import GeneralMessenger, MeasurementState
-from icoapi.models.models import DataValueModel, MeasurementInstructions, Metadata
+from icoapi.models.models import DataValueModel, MeasurementInstructions, Metadata, MetadataPrefix
 from icoapi.scripts.sth_scripts import disconnect_sth_devices
 
 logger = logging.getLogger(__name__)
@@ -152,20 +152,16 @@ async def send_ift_values(
             logger.warning("Client must be disconnected, passing")
 
 
-def write_pre_metadata(instructions: MeasurementInstructions, storage: StorageData) -> None:
-    if instructions.meta is None:
-        logger.info("No pre-measurement metadata provided")
-        return
-
-    picture_parameters = find_picture_parameters(instructions.meta)
+def write_metadata(prefix: MetadataPrefix, metadata: Metadata, storage: StorageData) -> None:
+    picture_parameters = find_picture_parameters(metadata)
     if picture_parameters and len(picture_parameters) > 0:
-        write_and_remove_picture_metadata("pre", picture_parameters, instructions.meta, storage)
+        write_and_remove_picture_metadata(prefix, picture_parameters, metadata, storage)
 
-    meta_dump = json.dumps(instructions.meta.__dict__, default=lambda o: o.__dict__)
+    meta_dump = json.dumps(metadata.__dict__, default=lambda o: o.__dict__)
     storage.add_acceleration_meta(
-        "pre_metadata", meta_dump
+        f"{prefix}_metadata", meta_dump
     )
-    logger.info("Added pre-measurement metadata")
+    logger.info(f"Added {prefix}-measurement metadata")
 
 
 def find_picture_parameters(meta: Metadata) -> list[str]:
@@ -176,22 +172,8 @@ def find_picture_parameters(meta: Metadata) -> list[str]:
                 picture_parameters.append(key)
     return picture_parameters
 
-def write_post_metadata(meta: Metadata, storage: StorageData) -> None:
-    if meta is None:
-        logger.info("No post-measurement metadata provided")
-        return
 
-    picture_parameters = find_picture_parameters(meta)
-    if picture_parameters and len(picture_parameters) > 0:
-        write_and_remove_picture_metadata("post", picture_parameters, meta, storage)
-
-    meta_dump = json.dumps(meta.__dict__, default=lambda o: o.__dict__)
-    storage.add_acceleration_meta(
-        "post_metadata", meta_dump
-    )
-    logger.info("Added post-measurement metadata")
-
-def write_and_remove_picture_metadata(prefix: str, picture_parameters: list[str], meta: Metadata, storage: StorageData):
+def write_and_remove_picture_metadata(prefix: MetadataPrefix, picture_parameters: list[str], meta: Metadata, storage: StorageData):
     for param in picture_parameters:
         encoded_images: list[str] = []
         for encoded_image in meta.parameters[param].values():
@@ -292,7 +274,8 @@ async def run_measurement(
 
             storage.add_acceleration_meta("conversion", "true")
             storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
-            write_pre_metadata(instructions, storage)
+            if instructions.meta:
+                write_metadata(MetadataPrefix.PRE, instructions.meta, storage)
 
             async with network.open_data_stream(streaming_configuration) as stream:
 
@@ -398,7 +381,7 @@ async def run_measurement(
                     await asyncio.sleep(1)
                 logger.info("Received post-measurement metadata")
                 await general_messenger.send_post_meta_completed()
-                write_post_metadata(measurement_state.post_meta, storage)
+                write_metadata(MetadataPrefix.POST, measurement_state.post_meta, storage)
 
 
     except StreamingTimeoutError as e:

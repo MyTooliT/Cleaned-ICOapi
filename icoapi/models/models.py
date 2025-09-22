@@ -1,3 +1,4 @@
+from enum import unique, Enum
 from typing import Any, Dict, List, Optional
 from json import JSONEncoder
 
@@ -71,6 +72,12 @@ class MeasurementInstructionChannel:
 class Quantity:
     value: float|int
     unit: str
+
+@unique
+class MetadataPrefix(Enum(str)):
+    """Enum for metadata prefixes"""
+    PRE = "pre"
+    POST = "post"
 
 
 @dataclass
