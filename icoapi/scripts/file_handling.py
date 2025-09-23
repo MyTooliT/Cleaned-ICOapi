@@ -24,7 +24,7 @@ def load_env_file():
         # Third try: we should be in the bundled state
         bundle_dir = sys._MEIPASS
         logger.warning(f"Environment variables not found in local directory. Trying to load from app data: {bundle_dir}")
-        env_loaded = load_dotenv(os.path.join(bundle_dir, ".env"), verbose=True)
+        env_loaded = load_dotenv(os.path.join(bundle_dir, "config", ".env"), verbose=True)
     if not env_loaded:
         logger.critical(f"Environment variables not found")
         raise EnvironmentError(".env not found")
