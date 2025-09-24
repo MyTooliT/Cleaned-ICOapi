@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from pathlib import Path
 import logging
 import os
 
@@ -6,21 +6,26 @@ import yaml
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from starlette.responses import FileResponse
 
-from icoapi.models.models import ConfigFile, ConfigFileBackup, ConfigResponse
+from icoapi.models.models import ConfigFile, ConfigFileBackup, ConfigResponse, ConfigRestoreRequest
 from icoapi.scripts.config_helper import (
     ALLOWED_ENV_CONTENT_TYPES,
     ALLOWED_YAML_CONTENT_TYPES,
     ENV_FILENAME,
     METADATA_FILENAME,
     SENSORS_FILENAME,
+    CONFIG_BACKUP_DIRNAME,
+    is_backup_file_for,
     list_config_backups,
     store_config_file,
     validate_metadata_payload,
     validate_sensors_payload,
 )
 from icoapi.scripts.errors import (
-    HTTP_400_INVALID_YAML_EXCEPTION,
+    HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION,
+    HTTP_400_INVALID_CONFIG_RESTORE_SPEC, HTTP_400_INVALID_YAML_EXCEPTION,
     HTTP_400_INVALID_YAML_SPEC,
+    HTTP_404_CONFIG_BACKUP_NOT_FOUND_EXCEPTION,
+    HTTP_404_CONFIG_BACKUP_NOT_FOUND_SPEC,
     HTTP_404_FILE_NOT_FOUND_EXCEPTION,
     HTTP_404_FILE_NOT_FOUND_SPEC,
     HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION,
@@ -31,6 +36,8 @@ from icoapi.scripts.errors import (
     HTTP_422_SENSORS_SCHEMA_SPEC,
     HTTP_500_CONFIG_LIST_EXCEPTION,
     HTTP_500_CONFIG_LIST_SPEC,
+    HTTP_500_CONFIG_RESTORE_EXCEPTION,
+    HTTP_500_CONFIG_RESTORE_SPEC,
     HTTP_500_CONFIG_WRITE_EXCEPTION,
     HTTP_500_CONFIG_WRITE_SPEC,
 )
@@ -241,3 +248,51 @@ async def get_config_backups(config_dir: str = Depends(get_config_dir)) -> Confi
         raise HTTP_500_CONFIG_LIST_EXCEPTION from exc
 
     return ConfigResponse(files=files)
+
+
+@router.put(
+    "/restore",
+    responses={
+        200: {"description": "Configuration restored successfully."},
+        400: HTTP_400_INVALID_CONFIG_RESTORE_SPEC,
+        404: HTTP_404_CONFIG_BACKUP_NOT_FOUND_SPEC,
+        500: HTTP_500_CONFIG_RESTORE_SPEC,
+    },
+)
+async def restore_config_file(
+    payload: ConfigRestoreRequest,
+    config_dir: str = Depends(get_config_dir),
+):
+    config_lookup = {filename for _, filename in CONFIG_FILE_DEFINITIONS}
+    if payload.filename not in config_lookup:
+        logger.error(f"Restore requested for unknown configuration file: {payload.filename}")
+        raise HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION
+
+    backup_dir = Path(config_dir) / CONFIG_BACKUP_DIRNAME
+    backup_path = backup_dir / payload.backup_filename
+
+    if not backup_path.is_file():
+        logger.error(f"Requested backup for restore not found: {backup_path}")
+        raise HTTP_404_CONFIG_BACKUP_NOT_FOUND_EXCEPTION
+
+    if not is_backup_file_for(payload.filename, payload.backup_filename):
+        logger.error(
+            f"Backup {payload.backup_filename} does not match configuration {payload.filename}")
+        raise HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION
+
+    try:
+        backup_content = backup_path.read_bytes()
+    except OSError as exc:
+        logger.exception(f"Failed to read backup file {backup_path}")
+        raise HTTP_500_CONFIG_RESTORE_EXCEPTION from exc
+
+    try:
+        store_config(backup_content, config_dir, payload.filename)
+    except HTTPException as exc:
+        if exc is HTTP_500_CONFIG_WRITE_EXCEPTION:
+            raise HTTP_500_CONFIG_RESTORE_EXCEPTION from exc
+        raise
+
+    logger.info(
+        f"Restored {payload.filename} from backup {payload.backup_filename}")
+    return {"detail": "Configuration restored successfully."}

@@ -276,3 +276,26 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
     entries.sort(key=lambda item: item[1], reverse=True)
     return entries
 
+def is_backup_file_for(filename: str, backup_filename: str) -> bool:
+    base_name, suffix = split_base_and_suffix(filename)
+    backup_base, backup_suffix = split_base_and_suffix(backup_filename)
+
+    if suffix != backup_suffix:
+        return False
+
+    prefix = f"{base_name}__"
+    if not backup_base.startswith(prefix):
+        return False
+
+    remainder = backup_base[len(prefix):]
+    timestamp_piece, _, _ = remainder.partition('_')
+    if not timestamp_piece:
+        return False
+
+    try:
+        datetime.strptime(timestamp_piece, BACKUP_TIMESTAMP_FORMAT)
+    except ValueError:
+        return False
+
+    return True
+

@@ -205,3 +205,75 @@ HTTP_500_CONFIG_LIST_SPEC = {
     }
 }
 
+HTTP_404_CONFIG_BACKUP_NOT_FOUND_EXCEPTION = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Requested configuration backup not found."
+)
+HTTP_404_CONFIG_BACKUP_NOT_FOUND_SPEC = {
+    "description": "Requested configuration backup not found.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Requested configuration backup not found.",
+                "status_code": 404
+            },
+        }
+    }
+}
+
+HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="Invalid configuration restore request."
+)
+HTTP_400_INVALID_CONFIG_RESTORE_SPEC = {
+    "description": "Invalid configuration restore request.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Invalid configuration restore request.",
+                "status_code": 400
+            },
+        }
+    }
+}
+
+HTTP_500_CONFIG_RESTORE_EXCEPTION = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to restore configuration file."
+)
+HTTP_500_CONFIG_RESTORE_SPEC = {
+    "description": "Failed to restore configuration file.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Failed to restore configuration file.",
+                "status_code": 500
+            },
+        }
+    }
+}
+

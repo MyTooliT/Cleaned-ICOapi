@@ -330,3 +330,8 @@ class ConfigFile:
 class ConfigResponse:
     files: list[ConfigFile]
 
+
+class ConfigRestoreRequest(BaseModel):
+    filename: str
+    backup_filename: str
+
