@@ -63,3 +63,97 @@ HTTP_502_CAN_NO_RESPONSE_SPEC = {
         }
     }
 }
+
+HTTP_400_INVALID_YAML_EXCEPTION = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to parse YAML payload.")
+HTTP_400_INVALID_YAML_SPEC = {
+    "description": "Failed to parse YAML payload.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"},
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Failed to parse YAML payload.",
+                "status_code": 400,
+            },
+        }
+    }
+}
+
+HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION = HTTPException(
+    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+    detail="Unsupported media type for YAML upload."
+)
+HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_SPEC = {
+    "description": "Unsupported media type for YAML upload.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"},
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Unsupported media type for YAML upload.",
+                "status_code": 415,
+            },
+        }
+    }
+}
+
+HTTP_422_METADATA_SCHEMA_EXCEPTION = HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="Provided YAML does not satisfy metadata schema."
+)
+HTTP_422_METADATA_SCHEMA_SPEC = {
+    "description": "Provided YAML does not satisfy metadata schema.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Provided YAML does not satisfy metadata schema.",
+                "status_code": 422
+            },
+        }
+    }
+}
+
+HTTP_500_METADATA_WRITE_EXCEPTION = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to store metadata configuration."
+)
+HTTP_500_METADATA_WRITE_SPEC = {
+    "description": "Failed to store metadata configuration.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Failed to store metadata configuration.",
+                "status_code": 500
+            },
+        }
+    }
+}
+

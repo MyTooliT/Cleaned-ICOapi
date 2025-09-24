@@ -4,11 +4,10 @@ from os import getenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from mytoolit.can.network import CANInitError
 from contextlib import asynccontextmanager
 
-from icoapi.routers import sensor_routes, stu_routes, sth_routes, common, file_routes, measurement_routes, cloud_routes, \
-    log_routes
+from icoapi.routers import config_routes, sensor_routes, stu_routes, sth_routes, common, file_routes, \
+    measurement_routes, cloud_routes, log_routes
 from icoapi.scripts.file_handling import copy_config_files_if_not_exists, ensure_folder_exists, get_application_dir, \
     get_config_dir, \
     get_measurement_dir, \
@@ -50,6 +49,7 @@ app.include_router(prefix='/api/v1', router=cloud_routes.router)
 app.include_router(prefix='/api/v1', router=measurement_routes.router)
 app.include_router(prefix='/api/v1', router=log_routes.router)
 app.include_router(prefix='/api/v1', router=sensor_routes.router)
+app.include_router(prefix='/api/v1', router=config_routes.router)
 
 
 logger = logging.getLogger(__name__)
