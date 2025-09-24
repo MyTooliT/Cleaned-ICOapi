@@ -87,10 +87,10 @@ HTTP_400_INVALID_YAML_SPEC = {
 
 HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION = HTTPException(
     status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-    detail="Unsupported media type for YAML upload."
+    detail="Unsupported media type for configuration upload."
 )
 HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_SPEC = {
-    "description": "Unsupported media type for YAML upload.",
+    "description": "Unsupported media type for configuration upload.",
     "content": {
         "application/json": {
             "schema": {
@@ -102,7 +102,7 @@ HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_SPEC = {
                 "required": ["detail", "status_code"]
             },
             "example": {
-                "detail": "Unsupported media type for YAML upload.",
+                "detail": "Unsupported media type for configuration upload.",
                 "status_code": 415,
             },
         }
@@ -133,12 +133,12 @@ HTTP_422_METADATA_SCHEMA_SPEC = {
     }
 }
 
-HTTP_500_METADATA_WRITE_EXCEPTION = HTTPException(
-    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    detail="Failed to store metadata configuration."
+HTTP_422_SENSORS_SCHEMA_EXCEPTION = HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="Provided YAML does not satisfy sensors schema."
 )
-HTTP_500_METADATA_WRITE_SPEC = {
-    "description": "Failed to store metadata configuration.",
+HTTP_422_SENSORS_SCHEMA_SPEC = {
+    "description": "Provided YAML does not satisfy sensors schema.",
     "content": {
         "application/json": {
             "schema": {
@@ -150,10 +150,33 @@ HTTP_500_METADATA_WRITE_SPEC = {
                 "required": ["detail", "status_code"]
             },
             "example": {
-                "detail": "Failed to store metadata configuration.",
-                "status_code": 500
+                "detail": "Provided YAML does not satisfy sensors schema.",
+                "status_code": 422
             },
         }
     }
 }
 
+HTTP_500_CONFIG_WRITE_EXCEPTION = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to store configuration file."
+)
+HTTP_500_CONFIG_WRITE_SPEC = {
+    "description": "Failed to store configuration file.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Failed to store configuration file.",
+                "status_code": 500
+            },
+        }
+    }
+}
