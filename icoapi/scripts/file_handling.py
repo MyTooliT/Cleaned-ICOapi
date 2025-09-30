@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from platformdirs import user_data_dir
 
 from icoapi.models.models import DiskCapacity
+from icoapi.scripts.config_helper import CONFIG_FILE_DEFINITIONS
 
 logger = logging.getLogger(__name__)
 
@@ -47,10 +48,10 @@ def get_config_dir() -> str:
     return config_dir
 
 def get_sensors_file_path() -> str:
-    return os.path.join(get_config_dir(), "sensors.yaml")
+    return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.SENSORS.filename)
 
 def get_metadata_file_path() -> str:
-    return os.path.join(get_config_dir(), "metadata.yaml")
+    return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.METADATA.filename)
 
 def copy_config_files_if_not_exists(src_path: str, dest_path: str):
     for f in os.listdir(src_path):
