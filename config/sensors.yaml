@@ -160,3 +160,5 @@ sensor_configurations:
     channels:
       1: { sensor_id: acc100g_01 }
       2: { sensor_id: rotacc_02 }
+
+default_configuration_id: default-sth

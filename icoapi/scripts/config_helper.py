@@ -233,6 +233,11 @@ def validate_sensors_payload(payload: Any) -> list[str]:
                             f"sensor_configurations[{cfg_index}] -> channels -> {channel_key} -> sensor_id: unknown sensor_id '{sensor_id}'"
                         )
 
+    default_configuration_id = payload.get("default_configuration_id")
+    if default_configuration_id is not None:
+        if not isinstance(default_configuration_id, str):
+            errors.append("default_configuration_id: expected str when provided")
+
     return errors
 
 
