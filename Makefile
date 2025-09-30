@@ -75,9 +75,3 @@ stream:
 .PHONY: stop-measurement
 stop-measurement:
 	http POST $(HTTP_URL)/measurement/stop
-
-
-.PHONY: test-config
-test-config:
-	poetry run pytest -m config
-
