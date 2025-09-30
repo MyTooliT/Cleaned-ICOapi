@@ -2,7 +2,7 @@ import logging
 
 import tables
 from fastapi import APIRouter, HTTPException, UploadFile
-from fastapi.params import Body, Depends
+from fastapi.params import Depends
 from fastapi.responses import FileResponse, StreamingResponse
 import os
 from datetime import datetime
@@ -61,7 +61,7 @@ async def list_files_and_capacity(
                     is_uploaded=False,
                     upload_timestamp=None
                 )
-                if os.getenv("TRIDENT_API_ENABLED") == "True":
+                if storage.get_client() is not None:
                     matches = [file for file in cloud_files if filename in file.Key]
                     if matches:
                         cloud_details.is_uploaded = True

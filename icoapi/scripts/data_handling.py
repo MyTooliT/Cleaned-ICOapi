@@ -2,12 +2,14 @@ import os
 import sys
 import textwrap
 from os import PathLike, path, getcwd
-from typing import List, Optional
+from pathlib import Path
+from typing import Any, List, Optional
 import yaml
 from mytoolit.measurement.storage import StorageData
 from tables import Float32Col, IsDescription, StringCol
 
-from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor, PCBSensorConfiguration
+from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor, PCBSensorConfiguration, \
+    TridentConfig
 import logging
 
 from icoapi.scripts.file_handling import ensure_folder_exists, get_sensors_file_path
@@ -224,6 +226,37 @@ def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> N
 
     logger.info(f"Added {count} sensors to the HDF5 file.")
 
+
+def validate_trident_config(data: Any) -> list[str]:
+    required = ["protocol", "domain", "base_path", "username", "password", "bucket", "enabled"]
+    return [k for k in required if k not in data]
+
+
+def read_and_parse_trident_config(file_path: str) -> TridentConfig:
+    logger.info(f"Trying to read dataspace config file: {file_path}")
+    if not path.exists(file_path):
+        raise FileNotFoundError(f"Dataspace config file not found: {file_path}")
+
+    try:
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+    except Exception as e:
+        raise Exception(f"Error parsing dataspace config file: {file_path}") from e
+
+    missing = validate_trident_config(data)
+    if missing:
+        raise KeyError(f"Missing required config keys: {', '.join(missing)}")
+
+    return TridentConfig(
+        protocol=str(data["protocol"]).strip(),
+        domain=str(data["domain"]).strip(),
+        base_path=str(data["base_path"]).lstrip("/").strip(),
+        service=f"{data['protocol']}://{data['domain']}/{data['base_path']}",
+        username=str(data["username"]),
+        password=str(data["password"]),
+        default_bucket=str(data["bucket"]),
+        enabled=bool(data["enabled"]),
+    )
 
 
 class MeasurementSensorInfo:

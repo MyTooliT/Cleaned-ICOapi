@@ -1,13 +1,14 @@
 import asyncio
 import logging
-from os import getenv
-from typing import Any, List
+from typing import List
 from mytoolit.can.network import CANInitError, Network
 from starlette.websockets import WebSocket
 
-from icoapi.models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel
+from icoapi.models.models import MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, SystemStateModel, \
+    TridentConfig
 from icoapi.models.trident import BaseClient, NoopClient, StorageClient
-from icoapi.scripts.file_handling import get_disk_space_in_gb
+from icoapi.scripts.data_handling import read_and_parse_trident_config
+from icoapi.scripts.file_handling import get_dataspace_file_path, get_disk_space_in_gb
 
 logger = logging.getLogger(__name__)
 
@@ -148,30 +149,53 @@ class TridentHandler:
     _client: StorageClient | None = None
 
     @classmethod
-    async def get_client(cls) -> StorageClient:
-        if cls._client is None:
-            protocol = getenv("TRIDENT_API_PROTOCOL")
-            domain = getenv("TRIDENT_API_DOMAIN")
-            base_path = getenv("TRIDENT_API_BASE_PATH")
-            service = f"{protocol}://{domain}/{base_path}"
-            username = getenv("TRIDENT_API_USERNAME")
-            password = getenv("TRIDENT_API_PASSWORD")
-            default_bucket = getenv("TRIDENT_API_BUCKET")
+    async def create_client(cls, config: TridentConfig):
+        cls._client = StorageClient(
+            config.service,
+            config.username,
+            config.password,
+            config.default_bucket,
+            config.domain
+        )
+        await get_messenger().push_messenger_update()
+        logger.info(f"Created TridentClient for user <{config.username}> at service <{config.service}>")
 
-            cls._client = StorageClient(service, username, password, default_bucket, domain)
-            await get_messenger().push_messenger_update()
-            logger.info(f"Created TridentClient for user <{username}> at service <{service}>")
-
+    @classmethod
+    async def get_client(cls) -> StorageClient|None:
         return cls._client
 
 
 async def get_trident_client() -> BaseClient:
-    if getenv("TRIDENT_API_ENABLED") == "True":
-        client = TridentHandler.get_client()
-        return await client
+    trident = await TridentHandler.get_client()
+    if trident is not None:
+        return trident
     else:
         return NoopClient()
 
+
+async def setup_trident():
+    ds_path = get_dataspace_file_path()
+    try:
+        dataspace_config = read_and_parse_trident_config(ds_path)
+        if dataspace_config.enabled:
+            if TridentHandler.get_client() is not None:
+                TridentHandler._client = None
+            await TridentHandler.create_client(dataspace_config)
+            handler = await TridentHandler.get_client()
+            if handler is None:
+                logger.exception("Failed at creating trident connection")
+            else:
+                handler.authenticate()
+        else:
+            if TridentHandler.get_client() is not None:
+                TridentHandler._client = None
+
+    except FileNotFoundError:
+        logger.warning(f"Cannot find dataspace config file under {ds_path}")
+    except KeyError as e:
+        logger.exception(f"Cannot parse dataspace config file: {e}")
+    except Exception as e:
+        logger.error(f"Cannot establish Trident connection: {e}")
 
 
 class GeneralMessenger:

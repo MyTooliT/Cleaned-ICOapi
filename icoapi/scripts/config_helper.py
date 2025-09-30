@@ -48,6 +48,7 @@ class ConfigFileDefinition:
     METADATA: ConfigFileDescription
     SENSORS: ConfigFileDescription
     ENV: ConfigFileDescription
+    DATASPACE: ConfigFileDescription
 
 
 CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
@@ -68,8 +69,15 @@ CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
         title="Environment Variables",
         description="Environment variables containing system settings.",
         filename=".env"
+    ),
+    DATASPACE=ConfigFileDescription(
+        endpoint="dataspace",
+        title="Data Space Configuration",
+        description="Configuration file containing your data space connection settings.",
+        filename="dataspace.yaml"
     )
 )
+
 
 
 

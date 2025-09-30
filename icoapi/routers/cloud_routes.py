@@ -6,7 +6,7 @@ import os
 
 from starlette.status import HTTP_502_BAD_GATEWAY
 
-from icoapi.models.globals import get_trident_client
+from icoapi.models.globals import get_trident_client, setup_trident
 from icoapi.models.models import TridentBucketObject
 from icoapi.models.trident import AuthorizationError, HostNotFoundError, StorageClient
 from icoapi.scripts.file_handling import get_measurement_dir
@@ -29,6 +29,8 @@ async def upload_file(filename: Annotated[str, Body(embed=True)], client: Storag
 
 @router.post("/authenticate")
 async def authenticate(storage: StorageClient = Depends(get_trident_client)):
+    storage.revoke_auth()
+    await setup_trident()
     try:
         storage.authenticate()
     except HTTPException as e:

@@ -3,12 +3,15 @@ from datetime import datetime
 from pathlib import Path
 import logging
 import os
+from typing import Any
 
 import yaml
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from starlette.responses import FileResponse
 
+from icoapi.models.globals import TridentHandler, get_trident_client, setup_trident
 from icoapi.models.models import ConfigFile, ConfigFileBackup, ConfigResponse, ConfigRestoreRequest
+from icoapi.models.trident import StorageClient
 from icoapi.scripts.config_helper import (
     ALLOWED_ENV_CONTENT_TYPES,
     ALLOWED_YAML_CONTENT_TYPES,
@@ -18,8 +21,9 @@ from icoapi.scripts.config_helper import (
     list_config_backups,
     store_config_file,
     validate_metadata_payload,
-    validate_sensors_payload,
+    validate_sensors_payload
 )
+from icoapi.scripts.data_handling import validate_trident_config
 from icoapi.scripts.errors import (
     HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION,
     HTTP_400_INVALID_CONFIG_RESTORE_SPEC, HTTP_400_INVALID_YAML_EXCEPTION,
@@ -30,7 +34,7 @@ from icoapi.scripts.errors import (
     HTTP_404_FILE_NOT_FOUND_SPEC,
     HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION,
     HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_SPEC,
-    HTTP_422_METADATA_SCHEMA_EXCEPTION,
+    HTTP_422_DATASPACE_SCHEMA_EXCEPTION, HTTP_422_DATASPACE_SCHEMA_SPEC, HTTP_422_METADATA_SCHEMA_EXCEPTION,
     HTTP_422_METADATA_SCHEMA_SPEC,
     HTTP_422_SENSORS_SCHEMA_EXCEPTION,
     HTTP_422_SENSORS_SCHEMA_SPEC,
@@ -55,6 +59,23 @@ logger = logging.getLogger(__name__)
 #     ("Sensors configuration", SENSORS_FILENAME),
 #     ("Environment variables", ENV_FILENAME),
 # ]
+
+async def validate_and_parse_yaml_file(file: UploadFile) -> (Any, bytes):
+    if file.content_type and file.content_type.lower() not in ALLOWED_YAML_CONTENT_TYPES:
+        raise HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION
+
+    raw_content = await file.read()
+    if not raw_content:
+        logger.error("Received empty YAML payload for sensors upload")
+        raise HTTP_400_INVALID_YAML_EXCEPTION
+
+    try:
+        parsed_yaml = yaml.safe_load(raw_content)
+    except yaml.YAMLError as exc:
+        logger.error(f"Failed to parse uploaded sensors YAML: {exc}")
+        raise HTTP_400_INVALID_YAML_EXCEPTION
+
+    return parsed_yaml, raw_content
 
 
 def file_response(config_dir: str, filename: str, media_type: str) -> FileResponse:
@@ -106,19 +127,7 @@ async def upload_metadata_file(
     file: UploadFile = File(..., description="YAML metadata configuration file"),
     config_dir: str = Depends(get_config_dir),
 ):
-    if file.content_type and file.content_type.lower() not in ALLOWED_YAML_CONTENT_TYPES:
-        raise HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION
-
-    raw_content = await file.read()
-    if not raw_content:
-        logger.error("Received empty YAML payload for metadata upload")
-        raise HTTP_400_INVALID_YAML_EXCEPTION
-
-    try:
-        parsed_yaml = yaml.safe_load(raw_content)
-    except yaml.YAMLError as exc:
-        logger.error(f"Failed to parse uploaded metadata YAML: {exc}")
-        raise HTTP_400_INVALID_YAML_EXCEPTION
+    parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
 
     if parsed_yaml is None:
         errors = ["YAML document must not be empty"]
@@ -159,19 +168,7 @@ async def upload_sensors_file(
     file: UploadFile = File(..., description="YAML sensors configuration file"),
     config_dir: str = Depends(get_config_dir),
 ):
-    if file.content_type and file.content_type.lower() not in ALLOWED_YAML_CONTENT_TYPES:
-        raise HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION
-
-    raw_content = await file.read()
-    if not raw_content:
-        logger.error("Received empty YAML payload for sensors upload")
-        raise HTTP_400_INVALID_YAML_EXCEPTION
-
-    try:
-        parsed_yaml = yaml.safe_load(raw_content)
-    except yaml.YAMLError as exc:
-        logger.error(f"Failed to parse uploaded sensors YAML: {exc}")
-        raise HTTP_400_INVALID_YAML_EXCEPTION
+    parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
 
     if parsed_yaml is None:
         errors = ["YAML document must not be empty"]
@@ -188,6 +185,44 @@ async def upload_sensors_file(
 
     store_config(raw_content, config_dir, CONFIG_FILE_DEFINITIONS.SENSORS.filename)
     return {"detail": "Sensor configuration uploaded successfully."}
+
+
+@router.post(
+    "/dataspace",
+    responses={
+        200: {"description": "Dataspace configuration uploaded successfully."},
+        400: HTTP_400_INVALID_YAML_SPEC,
+        415: HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_SPEC,
+        422: HTTP_422_DATASPACE_SCHEMA_SPEC,
+        500: HTTP_500_CONFIG_WRITE_SPEC,
+    },
+)
+async def upload_dataspace_file(
+    file: UploadFile = File(..., description="YAML sensors configuration file"),
+    config_dir: str = Depends(get_config_dir),
+):
+    parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
+
+    if parsed_yaml is None:
+        errors = ["YAML document must not be empty"]
+    else:
+        errors = validate_trident_config(parsed_yaml)
+
+    if errors:
+        logger.error(f"Dataspace YAML validation failed: {errors}")
+        error_detail = f"{HTTP_422_DATASPACE_SCHEMA_SPEC.detail} Errors: {'; '.join(errors)}"
+        raise HTTPException(
+            status_code=HTTP_422_DATASPACE_SCHEMA_EXCEPTION.status_code,
+            detail=error_detail,
+        )
+
+
+    store_config(raw_content, config_dir, CONFIG_FILE_DEFINITIONS.DATASPACE.filename)
+
+    TridentHandler._client = None
+    await setup_trident()
+
+    return {"detail": "Dataspace configuration uploaded successfully."}
 
 
 @router.get("/env", responses={
@@ -299,4 +334,9 @@ async def restore_config_file(
 
     logger.info(
         f"Restored {payload.filename} from backup {payload.backup_filename}")
+
+    if payload.filename == CONFIG_FILE_DEFINITIONS.DATASPACE.filename:
+        TridentHandler._client = None
+        await setup_trident()
+        logger.info("Trident client re-initialized")
     return {"detail": "Configuration restored successfully."}

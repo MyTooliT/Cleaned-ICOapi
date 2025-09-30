@@ -47,6 +47,9 @@ def get_config_dir() -> str:
     logger.info(f"Config directory: {config_dir}")
     return config_dir
 
+def get_dataspace_file_path() -> str:
+    return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.DATASPACE.filename)
+
 def get_sensors_file_path() -> str:
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.SENSORS.filename)
 

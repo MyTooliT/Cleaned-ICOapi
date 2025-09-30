@@ -211,6 +211,18 @@ class SocketMessage(BaseModel, JSONEncoder):
 
 
 @dataclass
+class TridentConfig:
+    protocol: str
+    domain: str
+    base_path: str
+    service: str
+    username: str
+    password: str
+    default_bucket: str
+    enabled: bool
+
+
+@dataclass
 class TridentBucketMeta:
     Name: str
     CreationDate: str

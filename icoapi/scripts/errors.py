@@ -157,6 +157,30 @@ HTTP_422_SENSORS_SCHEMA_SPEC = {
     }
 }
 
+HTTP_422_DATASPACE_SCHEMA_EXCEPTION = HTTPException(
+    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    detail="Provided YAML does not satisfy sensors schema."
+)
+HTTP_422_DATASPACE_SCHEMA_SPEC = {
+    "description": "Provided YAML does not satisfy sensors schema.",
+    "content": {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                    "status_code": {"type": "integer"}
+                },
+                "required": ["detail", "status_code"]
+            },
+            "example": {
+                "detail": "Provided YAML does not satisfy sensors schema.",
+                "status_code": 422
+            },
+        }
+    }
+}
+
 HTTP_500_CONFIG_WRITE_EXCEPTION = HTTPException(
     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     detail="Failed to store configuration file."

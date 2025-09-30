@@ -169,12 +169,18 @@ class BaseClient:
     def is_authenticated(self):
         raise NotImplementedError
 
+    def revoke_auth(self):
+        pass
+
 
 
 class StorageClient(BaseClient):
     def __init__(self, service: str, username: str, password: str, default_bucket: str, domain: str):
         self._client = TridentClient(service, username, password, domain)
         self.default_bucket = default_bucket
+
+    def get_client(self):
+        return self._client
 
     def get_buckets(self):
         return self._client.get("/s3/buckets").json()
@@ -220,6 +226,10 @@ class StorageClient(BaseClient):
     def is_authenticated(self):
         return self._client.is_authenticated()
 
+    def revoke_auth(self):
+        self._client.session.close()
+        self._client.session = requests.Session()
+
 
 class NoopClient(BaseClient):
     def get_buckets(self, *args, **kwargs):
@@ -239,3 +249,6 @@ class NoopClient(BaseClient):
 
     def is_authenticated(self, *args, **kwargs):
         logger.debug("No cloud connection. Skipped <is_authenticated>")
+
+    def get_client(self):
+        logger.debug("No cloud connection. Skipped <get_client>")
