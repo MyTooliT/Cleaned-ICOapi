@@ -1,6 +1,7 @@
 info:
   version: 0.0.2
   generated_at: '2025-09-15T08:30:42.079Z'
+  default_profile_id: milling
 profiles:
   twm1:
     id: cirp_twm_1
@@ -1806,3 +1807,4 @@ profiles:
           datatype: text_box
           type: default
           required: optional
+

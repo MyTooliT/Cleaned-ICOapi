@@ -85,6 +85,9 @@ def validate_metadata_payload(payload: Any) -> list[str]:
         version = info.get("version")
         if not isinstance(version, str) or not version.strip():
             errors.append("info -> version: expected non-empty string")
+        default_profile_id = info.get("default_profile_id")
+        if not isinstance(default_profile_id, str) or not default_profile_id.strip():
+            errors.append("info -> default_profile_id: expected non-empty string")
 
     profiles = payload.get("profiles")
     if not isinstance(profiles, dict) or not profiles:
