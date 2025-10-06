@@ -20,10 +20,10 @@ from icoapi.scripts.config_helper import (
     is_backup_file_for,
     list_config_backups,
     store_config_file,
+    validate_dataspace_payload,
     validate_metadata_payload,
     validate_sensors_payload
 )
-from icoapi.scripts.data_handling import validate_trident_config
 from icoapi.scripts.errors import (
     HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION,
     HTTP_400_INVALID_CONFIG_RESTORE_SPEC, HTTP_400_INVALID_YAML_EXCEPTION,
@@ -200,7 +200,7 @@ async def upload_dataspace_file(
     if parsed_yaml is None:
         errors = ["YAML document must not be empty"]
     else:
-        errors = validate_trident_config(parsed_yaml)
+        errors = validate_dataspace_payload(parsed_yaml)
 
     if errors:
         logger.error(f"Dataspace YAML validation failed: {errors}")

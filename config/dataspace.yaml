@@ -1,8 +1,14 @@
-enabled: False
-username:
-password:
-bucket:
-bucket_folder:
-protocol:
-domain:
-base_path:
+info:
+  schema_name: dataspace_schema
+  schema_version: 0.0.1
+  name: Trident Dataspace Schema
+  date: '2025-10-06T12:00:00Z'
+connection:
+  enabled: False
+  username:
+  password:
+  bucket:
+  bucket_folder:
+  protocol:
+  domain:
+  base_path:

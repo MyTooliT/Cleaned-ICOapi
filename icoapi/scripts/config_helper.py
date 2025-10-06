@@ -277,6 +277,24 @@ def validate_sensors_payload(payload: Any) -> list[str]:
     return errors
 
 
+def validate_dataspace_payload(payload: Any) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["Root document must be a mapping"]
+
+    errors = validate_yaml_info_header(payload)
+
+    connection = payload.get("connection")
+    if not isinstance(connection, dict):
+        errors.append("connection: expected mapping with connection details")
+    else:
+        for key in ["protocol", "domain", "base_path", "username", "password", "bucket", "enabled"]:
+            value = connection.get(key)
+            if not is_valid_string(value):
+                errors.append(f"connection -> {key}: expected non-empty string")
+
+    return errors
+
+
 def store_config_file(content: bytes, config_dir: PathLike, filename: str) -> Tuple[Optional[Path], Path]:
     config_path = Path(config_dir)
     config_path.mkdir(parents=True, exist_ok=True)
