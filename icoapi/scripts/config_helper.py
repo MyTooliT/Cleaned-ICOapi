@@ -4,6 +4,10 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, TypedDict, Union
 import numbers
 
+import yaml
+
+from icoapi.models.models import ConfigFileInfoHeader
+
 ALLOWED_YAML_CONTENT_TYPES = {
     "application/x-yaml",
     "application/yaml",
@@ -85,7 +89,7 @@ def is_valid_string(value: Any) -> bool:
 
 def validate_yaml_info_header(payload: Any) -> list[str]:
     errors: list[str] = []
-
+    print(payload)
     info = payload.get("info")
     if not isinstance(info, dict):
         return ["info: expected mapping with metadata info"]
@@ -287,10 +291,13 @@ def validate_dataspace_payload(payload: Any) -> list[str]:
     if not isinstance(connection, dict):
         errors.append("connection: expected mapping with connection details")
     else:
-        for key in ["protocol", "domain", "base_path", "username", "password", "bucket", "enabled"]:
+        for key in ["protocol", "domain", "base_path", "username", "password", "bucket"]:
             value = connection.get(key)
             if not is_valid_string(value):
                 errors.append(f"connection -> {key}: expected non-empty string")
+
+        if not isinstance(connection.get("enabled"), bool):
+            errors.append("connection -> enabled: expected boolean")
 
     return errors
 
@@ -340,7 +347,27 @@ def split_base_and_suffix(filename: str) -> tuple[str, str]:
         base = filename
     return base, suffix
 
-def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, str]]:
+
+def parse_info_header_from_file(config_file: Path) -> ConfigFileInfoHeader | None:
+    if config_file.suffix == ".yaml":
+        with open(config_file, "r") as f:
+            content = yaml.safe_load(f)
+            errors = validate_yaml_info_header(content)
+            if len(errors) > 0:
+                return None
+            else:
+                info = content.get("info")
+                return ConfigFileInfoHeader(
+                    schema_name=info.get("schema_name"),
+                    schema_version=info.get("schema_version"),
+                    name=info.get("name"),
+                    date=info.get("date")
+                )
+    else:
+        return None
+
+
+def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, str, ConfigFileInfoHeader | None]]:
     config_path = Path(config_dir)
     backup_dir = config_path / CONFIG_BACKUP_DIRNAME
     if not backup_dir.is_dir():
@@ -348,10 +375,10 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
 
     base_name, suffix = split_base_and_suffix(filename)
     prefix = f"{base_name}__"
-    entries: list[tuple[str, str]] = []
+    entries: list[tuple[str, str, ConfigFileInfoHeader | None]] = []
 
     for entry in backup_dir.iterdir():
-        if not entry.is_file():
+        if not Path.is_file(entry):
             continue
 
         entry_base, entry_suffix = split_base_and_suffix(entry.name)
@@ -367,8 +394,14 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
         except ValueError:
             continue
 
-        timestamp_iso = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        entries.append((entry.name, timestamp_iso))
+        timestamp_iso = dt.strftime(UTC_TIMESTAMP_FORMAT)
+
+        if filename.endswith(".yaml"):
+            info_header = parse_info_header_from_file(entry)
+        else:
+            info_header = None
+
+        entries.append((entry.name, timestamp_iso, info_header))
 
     entries.sort(key=lambda item: item[1], reverse=True)
     return entries

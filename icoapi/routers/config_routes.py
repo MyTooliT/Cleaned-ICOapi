@@ -19,7 +19,7 @@ from icoapi.scripts.config_helper import (
     CONFIG_FILE_DEFINITIONS,
     is_backup_file_for,
     list_config_backups,
-    store_config_file,
+    parse_info_header_from_file, store_config_file,
     validate_dataspace_payload,
     validate_metadata_payload,
     validate_sensors_payload
@@ -263,9 +263,10 @@ async def get_config_backups(config_dir: str = Depends(get_config_dir)) -> Confi
         for f in fields(CONFIG_FILE_DEFINITIONS):
             DEF = getattr(CONFIG_FILE_DEFINITIONS, f.name)
             backup_entries = [
-                ConfigFileBackup(filename=backup_name, timestamp=timestamp)
-                for backup_name, timestamp in list_config_backups(config_dir, DEF.filename)
+                ConfigFileBackup(filename=backup_name, timestamp=timestamp, info_header=info_header)
+                for backup_name, timestamp, info_header in list_config_backups(config_dir, DEF.filename)
             ]
+            info_header = parse_info_header_from_file(Path(config_dir) / DEF.filename)
             files.append(
                 ConfigFile(
                     name=DEF.title,
@@ -274,6 +275,7 @@ async def get_config_backups(config_dir: str = Depends(get_config_dir)) -> Confi
                     endpoint=DEF.endpoint,
                     timestamp=datetime.fromtimestamp(os.path.getmtime(f"{config_dir}/{DEF.filename}")).isoformat(),
                     description=DEF.description,
+                    info_header=info_header,
                 )
             )
     except OSError as exc:
