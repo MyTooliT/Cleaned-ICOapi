@@ -89,7 +89,6 @@ def is_valid_string(value: Any) -> bool:
 
 def validate_yaml_info_header(payload: Any) -> list[str]:
     errors: list[str] = []
-    print(payload)
     info = payload.get("info")
     if not isinstance(info, dict):
         return ["info: expected mapping with metadata info"]

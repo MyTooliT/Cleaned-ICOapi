@@ -90,7 +90,6 @@ async def download_file(name: str, measurement_dir: str = Depends(get_measuremen
         raise HTTPException(status_code=405, detail=f"Method not allowed: {cause}")
 
     full_path = os.path.join(measurement_dir, name)
-    print(full_path)
     if os.path.isfile(full_path):
         return FileResponse(path=full_path, filename=name)
     else:
