@@ -110,7 +110,6 @@ async def download_logs_zip():
         f for f in os.listdir(base_dir)
         if LOG_FILE_PATTERN.fullmatch(f)
     ]
-    print(log_files)
     if not log_files:
         raise HTTPException(status_code=404, detail="No log files found.")
 
@@ -118,7 +117,6 @@ async def download_logs_zip():
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for file_name in log_files:
-            print(file_name)
             file_path = os.path.join(base_dir, file_name)
             zip_file.write(file_path, arcname=file_name)
 

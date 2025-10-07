@@ -4,6 +4,10 @@ from pathlib import Path
 from typing import Any, Optional, Tuple, TypedDict, Union
 import numbers
 
+import yaml
+
+from icoapi.models.models import ConfigFileInfoHeader
+
 ALLOWED_YAML_CONTENT_TYPES = {
     "application/x-yaml",
     "application/yaml",
@@ -32,6 +36,7 @@ SENSOR_REQUIRED_FIELDS = {
 
 CONFIG_BACKUP_DIRNAME = "backup"
 BACKUP_TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
+UTC_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 PathLike = Union[str, Path]
 
@@ -78,24 +83,49 @@ CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
     )
 )
 
+def is_valid_string(value: Any) -> bool:
+    return isinstance(value, str) and value.strip()
 
+
+def validate_yaml_info_header(payload: Any) -> list[str]:
+    errors: list[str] = []
+    info = payload.get("info")
+    if not isinstance(info, dict):
+        return ["info: expected mapping with metadata info"]
+
+    schema_name = info.get("schema_name")
+    if not is_valid_string(schema_name):
+        errors.append("info -> schema_name: expected non-empty string")
+
+    schema_version = info.get("schema_version")
+    if not is_valid_string(schema_version):
+        errors.append("info -> schema_version: expected non-empty string")
+
+    name = info.get("name")
+    if not is_valid_string(name):
+        errors.append("info -> name: expected non-empty string")
+
+    date = info.get("date")
+    if not is_valid_string(date):
+        errors.append("info -> date: expected non-empty string")
+    else:
+        try:
+            datetime.strptime(date, UTC_TIMESTAMP_FORMAT)
+        except ValueError:
+            errors.append("info -> date: expected date in UTC timestamp format")
+
+    return errors
 
 
 def validate_metadata_payload(payload: Any) -> list[str]:
-    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["Root document must be a mapping"]
 
-    info = payload.get("info")
-    if not isinstance(info, dict):
-        errors.append("info: expected mapping with metadata info")
-    else:
-        version = info.get("version")
-        if not isinstance(version, str) or not version.strip():
-            errors.append("info -> version: expected non-empty string")
-        default_profile_id = info.get("default_profile_id")
-        if not isinstance(default_profile_id, str) or not default_profile_id.strip():
-            errors.append("info -> default_profile_id: expected non-empty string")
+    errors = validate_yaml_info_header(payload)
+
+    default_profile_id = payload.get("default_profile_id")
+    if not is_valid_string(default_profile_id):
+        errors.append("default_profile_id: expected non-empty string")
 
     profiles = payload.get("profiles")
     if not isinstance(profiles, dict) or not profiles:
@@ -164,9 +194,10 @@ def validate_field_definition(field: dict[str, Any], path: list[str], errors: li
 
 
 def validate_sensors_payload(payload: Any) -> list[str]:
-    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["Root document must be a mapping"]
+
+    errors = validate_yaml_info_header(payload)
 
     sensors = payload.get("sensors")
     sensor_ids: set[str] = set()
@@ -249,6 +280,27 @@ def validate_sensors_payload(payload: Any) -> list[str]:
     return errors
 
 
+def validate_dataspace_payload(payload: Any) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["Root document must be a mapping"]
+
+    errors = validate_yaml_info_header(payload)
+
+    connection = payload.get("connection")
+    if not isinstance(connection, dict):
+        errors.append("connection: expected mapping with connection details")
+    else:
+        for key in ["protocol", "domain", "base_path", "username", "password", "bucket"]:
+            value = connection.get(key)
+            if not is_valid_string(value):
+                errors.append(f"connection -> {key}: expected non-empty string")
+
+        if not isinstance(connection.get("enabled"), bool):
+            errors.append("connection -> enabled: expected boolean")
+
+    return errors
+
+
 def store_config_file(content: bytes, config_dir: PathLike, filename: str) -> Tuple[Optional[Path], Path]:
     config_path = Path(config_dir)
     config_path.mkdir(parents=True, exist_ok=True)
@@ -294,7 +346,27 @@ def split_base_and_suffix(filename: str) -> tuple[str, str]:
         base = filename
     return base, suffix
 
-def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, str]]:
+
+def parse_info_header_from_file(config_file: Path) -> ConfigFileInfoHeader | None:
+    if config_file.suffix == ".yaml":
+        with open(config_file, "r") as f:
+            content = yaml.safe_load(f)
+            errors = validate_yaml_info_header(content)
+            if len(errors) > 0:
+                return None
+            else:
+                info = content.get("info")
+                return ConfigFileInfoHeader(
+                    schema_name=info.get("schema_name"),
+                    schema_version=info.get("schema_version"),
+                    name=info.get("name"),
+                    date=info.get("date")
+                )
+    else:
+        return None
+
+
+def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, str, ConfigFileInfoHeader | None]]:
     config_path = Path(config_dir)
     backup_dir = config_path / CONFIG_BACKUP_DIRNAME
     if not backup_dir.is_dir():
@@ -302,10 +374,10 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
 
     base_name, suffix = split_base_and_suffix(filename)
     prefix = f"{base_name}__"
-    entries: list[tuple[str, str]] = []
+    entries: list[tuple[str, str, ConfigFileInfoHeader | None]] = []
 
     for entry in backup_dir.iterdir():
-        if not entry.is_file():
+        if not Path.is_file(entry):
             continue
 
         entry_base, entry_suffix = split_base_and_suffix(entry.name)
@@ -321,8 +393,14 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
         except ValueError:
             continue
 
-        timestamp_iso = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        entries.append((entry.name, timestamp_iso))
+        timestamp_iso = dt.strftime(UTC_TIMESTAMP_FORMAT)
+
+        if filename.endswith(".yaml"):
+            info_header = parse_info_header_from_file(entry)
+        else:
+            info_header = None
+
+        entries.append((entry.name, timestamp_iso, info_header))
 
     entries.sort(key=lambda item: item[1], reverse=True)
     return entries

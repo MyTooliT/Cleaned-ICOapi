@@ -12,6 +12,7 @@ from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstr
     TridentConfig
 import logging
 
+from icoapi.scripts.config_helper import validate_dataspace_payload
 from icoapi.scripts.file_handling import ensure_folder_exists, get_sensors_file_path
 
 logger = logging.getLogger(__name__)
@@ -227,11 +228,6 @@ def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> N
     logger.info(f"Added {count} sensors to the HDF5 file.")
 
 
-def validate_trident_config(data: Any) -> list[str]:
-    required = ["protocol", "domain", "base_path", "username", "password", "bucket", "enabled"]
-    return [k for k in required if k not in data]
-
-
 def read_and_parse_trident_config(file_path: str) -> TridentConfig:
     logger.info(f"Trying to read dataspace config file: {file_path}")
     if not path.exists(file_path):
@@ -239,13 +235,17 @@ def read_and_parse_trident_config(file_path: str) -> TridentConfig:
 
     try:
         with open(file_path, "r") as file:
-            data = yaml.safe_load(file)
+            payload = yaml.safe_load(file)
     except Exception as e:
         raise Exception(f"Error parsing dataspace config file: {file_path}") from e
 
-    missing = validate_trident_config(data)
-    if missing:
-        raise KeyError(f"Missing required config keys: {', '.join(missing)}")
+    errors = validate_dataspace_payload(payload)
+
+    if errors:
+        raise ValueError("|".join(errors))
+
+    data = payload.get("connection")
+    logger.info(f"Found dataspace config: {data}")
 
     return TridentConfig(
         protocol=str(data["protocol"]).strip(),

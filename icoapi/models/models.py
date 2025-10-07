@@ -333,9 +333,18 @@ class ParsedMetadata(BaseModel, JSONEncoder):
 
 
 @dataclass
+class ConfigFileInfoHeader:
+    schema_name: str
+    schema_version: str
+    name: str
+    date: str
+
+
+@dataclass
 class ConfigFileBackup:
     filename: str
     timestamp: str
+    info_header: ConfigFileInfoHeader
 
 
 @dataclass
@@ -346,6 +355,7 @@ class ConfigFile:
     endpoint: str
     timestamp: str
     description: str
+    info_header: ConfigFileInfoHeader
 
 
 @dataclass

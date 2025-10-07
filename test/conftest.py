@@ -107,7 +107,6 @@ def sensor_id(sensor_name, client):
     response = client.get("sensor")
     assert response.status_code == 200
     sensors = response.json()["sensors"]
-    print(sensors)
 
     for config in sensors:
         if config["name"] == sensor_name:
