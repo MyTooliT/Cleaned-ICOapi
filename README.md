@@ -227,6 +227,22 @@ compile time are used.
 
 You can find the default files for all three types under `/config`.
 
+## Configuration File Header
+
+In each configuration file there must be a header containing information on the
+file and schema.
+
+```yaml
+info:
+  schema_name: sensors_schema
+  schema_version: 0.0.1
+  config_name: General Purpose Sensor File
+  config_date: '2025-10-07T13:52:40+0200'
+  config_version: 0.0.1
+```
+
+The above section is exemplary for a sensor configuration file.
+
 ## Configuration File 1: Sensors
 
 The internal library starts the measurement based on selected channels. It is 
@@ -243,6 +259,8 @@ Additionally, a field for the default configuration exists. The file then looks
 like this:
 
 ```yaml
+info:
+  ...
 sensors:
 - ...
 - ...
@@ -327,14 +345,15 @@ This file sets the dataspace connection settings if required. It simply holds
 all the relevant information as:
 
 ````yaml
-enabled: False
-username: myUser
-password: strongPw123!
-bucket: common
-bucket_folder: default
-protocol: https
-domain: trident.example.com
-base_path: api/v1
+connection:
+  enabled: False
+  username: myUser
+  password: strongPw123!
+  bucket: common
+  bucket_folder: default
+  protocol: https
+  domain: trident.example.com
+  base_path: api/v1
 ````
 
 All relevant fields are strings without any `/` before or after the value. This
