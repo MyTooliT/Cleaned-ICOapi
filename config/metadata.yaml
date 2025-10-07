@@ -2,7 +2,7 @@ info:
   schema_name: metadata_schema
   schema_version: 0.0.1
   config_name: General Purpose Milling Only
-  config_date: '2025-09-15T08:30:42Z'
+  config_date: '2025-10-07T13:52:40+0200'
   config_version: 0.0.1
 default_profile_id: milling
 profiles:
@@ -18,33 +18,6 @@ profiles:
           type: default
           required: optional
           description: Person responsible for the measurement.
-        institution:
-          id: institution
-          label: Institution
-          datatype: dropdown
-          type: default
-          options:
-            - CNRC
-            - Georgia Institute of Technology
-            - Mondragon Unibertsitatea
-            - Université de Mons
-            - KIT Karlsruhe
-            - IFW - Universität Stuttgart
-            - AMRC - University of Sheffield
-            - Centrale Lyon ENISE
-            - CIIRC - CTU Prague
-            - University of Ljubljana
-            - University of Tokyo
-            - Keio University
-            - PTW - TU Darmstadt
-            - IFT - TU Wien
-            - ETH Zürich, Inspire
-            - ISF - TU Dortmund
-            - MTI - RWTH Aachen
-            - MAL - University of British Columbia
-            - SECO
-          required: optional
-          description: Institution at which the measurement is captured.
         machine:
           id: machine
           label: Machine

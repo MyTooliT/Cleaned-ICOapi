@@ -36,7 +36,6 @@ SENSOR_REQUIRED_FIELDS = {
 
 CONFIG_BACKUP_DIRNAME = "backup"
 BACKUP_TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
-UTC_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 PathLike = Union[str, Path]
 
@@ -107,7 +106,7 @@ def validate_yaml_info_header(payload: Any) -> list[str]:
         errors.append("info -> config_date: expected non-empty string")
     else:
         try:
-            datetime.strptime(date, UTC_TIMESTAMP_FORMAT)
+            datetime.fromisoformat(date)
         except ValueError:
             errors.append("info -> date: expected date in UTC timestamp format")
     return errors
@@ -395,7 +394,7 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
         except ValueError:
             continue
 
-        timestamp_iso = dt.strftime(UTC_TIMESTAMP_FORMAT)
+        timestamp_iso = dt.isoformat()
 
         if filename.endswith(".yaml"):
             info_header = parse_info_header_from_file(entry)
