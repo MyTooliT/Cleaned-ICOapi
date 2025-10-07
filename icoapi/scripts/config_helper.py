@@ -52,7 +52,6 @@ class ConfigFileDescription:
 class ConfigFileDefinition:
     METADATA: ConfigFileDescription
     SENSORS: ConfigFileDescription
-    ENV: ConfigFileDescription
     DATASPACE: ConfigFileDescription
 
 
@@ -68,12 +67,6 @@ CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
         title="Sensor Configuration",
         description="Configuration file containing sensor definitions and tool holder configurations.",
         filename="sensors.yaml"
-    ),
-    ENV=ConfigFileDescription(
-        endpoint="env",
-        title="Environment Variables",
-        description="Environment variables containing system settings.",
-        filename=".env"
     ),
     DATASPACE=ConfigFileDescription(
         endpoint="dataspace",
