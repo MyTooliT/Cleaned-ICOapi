@@ -286,13 +286,18 @@ def validate_dataspace_payload(payload: Any) -> list[str]:
     if not isinstance(connection, dict):
         errors.append("connection: expected mapping with connection details")
     else:
-        for key in ["protocol", "domain", "base_path", "username", "password", "bucket"]:
-            value = connection.get(key)
-            if not is_valid_string(value):
-                errors.append(f"connection -> {key}: expected non-empty string")
-
         if not isinstance(connection.get("enabled"), bool):
             errors.append("connection -> enabled: expected boolean")
+        else:
+            if connection.get("enabled") is False:
+                return errors
+
+            for key in ["protocol", "domain", "base_path", "username", "password", "bucket"]:
+                value = connection.get(key)
+                if not is_valid_string(value):
+                    errors.append(f"connection -> {key}: expected non-empty string")
+
+
 
     return errors
 
