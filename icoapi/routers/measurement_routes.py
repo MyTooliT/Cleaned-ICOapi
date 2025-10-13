@@ -31,7 +31,14 @@ async def start_measurement(
         start = datetime.datetime.now()
         filename = start.strftime("%Y-%m-%d_%H-%M-%S")
         if instructions.name:
-            sanitized = pathvalidate.sanitize_filename(instructions.name)
+            replaced = (instructions.name
+                         .replace("ä", "ae")
+                         .replace("ö", "oe")
+                         .replace("ü", "ue")
+                         .replace("Ä", "Ae")
+                         .replace("Ö", "Oe")
+                         .replace("Ü", "Ue"))
+            sanitized = pathvalidate.sanitize_filename(replaced)
             filename = sanitized + "__" + filename
         if instructions.meta:
             measurement_state.pre_meta = instructions.meta
