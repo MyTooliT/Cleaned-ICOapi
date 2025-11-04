@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
-from mytoolit.can.network import Network
+from icostate import ICOsystem
+from icotronic.can.error import ErrorResponseError, NoResponseError
 from icoapi.models.models import STUDeviceResponseModel
-from icoapi.models.globals import MeasurementState, get_measurement_state, get_network
-from icoapi.scripts.stu_scripts import reset_stu, enable_ota, disable_ota, get_stu
+from icoapi.models.globals import MeasurementState, get_measurement_state, get_system
+from icoapi.scripts.stu_scripts import reset_stu, get_stu
 from icoapi.scripts.errors import HTTP_502_CAN_NO_RESPONSE_EXCEPTION, HTTP_502_CAN_NO_RESPONSE_SPEC
-import mytoolit.can
 
 router = APIRouter(
     prefix="/stu",
@@ -13,10 +13,10 @@ router = APIRouter(
 
 
 @router.get('')
-async def stu(network: Network = Depends(get_network)) -> list[STUDeviceResponseModel]:
+async def stu(system: ICOsystem = Depends(get_system)) -> list[STUDeviceResponseModel]:
     try:
-        return await get_stu(network)
-    except mytoolit.can.network.NoResponseError:
+        return await get_stu(system)
+    except NoResponseError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
@@ -30,10 +30,10 @@ async def stu(network: Network = Depends(get_network)) -> list[STUDeviceResponse
     }
 )
 async def stu_reset(
-    network: Network = Depends(get_network),
+    system: ICOsystem = Depends(get_system),
     measurement_state: MeasurementState = Depends(get_measurement_state),
 ) -> None:
-    if await reset_stu(network):
+    if await reset_stu(system):
         await measurement_state.reset()
         return None
     else:
@@ -56,12 +56,12 @@ async def stu_reset(
         502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
-async def stu_connected(network: Network = Depends(get_network)):
+async def stu_connected(system: ICOsystem = Depends(get_system)):
     try:
-        return await network.is_connected()
-    except mytoolit.can.network.NoResponseError:
+        return await system.is_sensor_node_connected()
+    except NoResponseError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
-    except mytoolit.can.network.ErrorResponseError:
+    except ErrorResponseError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
     except AttributeError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION

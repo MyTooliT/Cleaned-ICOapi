@@ -13,7 +13,7 @@ from icoapi.scripts.file_handling import copy_config_files_if_not_exists, ensure
     get_config_dir, \
     get_measurement_dir, \
     is_bundled, load_env_file
-from icoapi.models.globals import MeasurementSingleton, NetworkSingleton, setup_trident
+from icoapi.models.globals import MeasurementSingleton, ICOsystemSingleton, setup_trident
 from icoapi.utils.logging_setup import setup_logging
 import logging
 
@@ -31,12 +31,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error when setting up Trident: {e}")
     try:
-        await NetworkSingleton.create_instance_if_none()
+        await ICOsystemSingleton.create_instance_if_none()
     except Exception as e:
-        logger.error(f"Error when initializing CAN network: {e}")
+        logger.error(f"Error when initializing CAN connection: {e}")
     yield
     MeasurementSingleton.clear_clients()
-    await NetworkSingleton.close_instance()
+    await ICOsystemSingleton.close_instance()
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(prefix='/api/v1', router=stu_routes.router)

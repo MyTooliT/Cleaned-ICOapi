@@ -1,40 +1,24 @@
-from mytoolit.can import Network, NoResponseError
+from icostate import ICOsystem
+from icotronic.can.error import NoResponseError
 from netaddr import EUI
 from icoapi.models.models import STUDeviceResponseModel
 
 
-STU_1_NAME = "STU 1"
 
 
-async def get_stu(network: Network) -> list[STUDeviceResponseModel]:
-    mac_eui = await network.get_mac_address(STU_1_NAME)
+async def get_stu(system: ICOsystem) -> list[STUDeviceResponseModel]:
+    mac_eui = await system.stu.get_mac_address()
     dev = STUDeviceResponseModel(
         device_number=1,
         mac_address=mac_eui.format(),
-        name=STU_1_NAME)
+        name="STU 1")
 
     return [dev]
 
 
-async def reset_stu(network: Network) -> bool:
+async def reset_stu(system: ICOsystem) -> bool:
     try:
-        await network.reset_node(STU_1_NAME)
-        return True
-    except NoResponseError:
-        return False
-
-
-async def enable_ota(network: Network) -> bool:
-    try:
-        await network.activate_bluetooth(STU_1_NAME)
-        return True
-    except NoResponseError:
-        return False
-
-
-async def disable_ota(network: Network) -> bool:
-    try:
-        await network.deactivate_bluetooth(STU_1_NAME)
+        await system.reset_stu()
         return True
     except NoResponseError:
         return False

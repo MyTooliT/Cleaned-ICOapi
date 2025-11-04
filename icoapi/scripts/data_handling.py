@@ -5,7 +5,7 @@ from os import PathLike, path, getcwd
 from pathlib import Path
 from typing import Any, List, Optional
 import yaml
-from mytoolit.measurement.storage import StorageData
+from icostate import ICOsystem
 from tables import Float32Col, IsDescription, StringCol
 
 from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor, PCBSensorConfiguration, \

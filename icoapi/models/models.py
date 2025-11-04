@@ -5,7 +5,7 @@ from json import JSONEncoder
 import pandas
 from pydantic import BaseModel, model_validator
 from dataclasses import dataclass
-from mytoolit.can.network import STHDeviceInfo
+from icostate import SensorNodeInfo
 
 
 class STHDeviceResponseModel(BaseModel):
@@ -17,10 +17,10 @@ class STHDeviceResponseModel(BaseModel):
     rssi: int  # The RSSI of the STH
 
     @classmethod
-    def from_network(cls, original_object: STHDeviceInfo):
+    def from_network(cls, original_object: SensorNodeInfo):
         return STHDeviceResponseModel(
             name=original_object.name,
-            device_number=original_object.device_number,
+            device_number=original_object.sensor_node_number,
             mac_address=original_object.mac_address.format(),
             rssi=original_object.rssi)
 

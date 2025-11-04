@@ -10,7 +10,7 @@ import json
 import asyncio
 from typing import Annotated, AsyncGenerator
 
-from mytoolit.measurement import Storage
+from icotronic.measurement import Storage
 from starlette.responses import PlainTextResponse
 from tables import NoSuchNodeError, Node, Table
 

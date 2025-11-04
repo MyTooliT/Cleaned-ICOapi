@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from icoapi.models.models import MeasurementStatus, ControlResponse, MeasurementInstructions, Metadata
-from icoapi.models.globals import get_messenger, get_network, get_measurement_state, MeasurementState, Network
+from icoapi.models.globals import get_messenger, get_system, get_measurement_state, MeasurementState, ICOsystem
 from icoapi.scripts.measurement import run_measurement
 
 router = APIRouter(
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @router.post("/start", response_model=ControlResponse)
 async def start_measurement(
         instructions: MeasurementInstructions,
-        network: Network = Depends(get_network),
+        system: ICOsystem = Depends(get_system),
         measurement_state: MeasurementState = Depends(get_measurement_state),
         general_messenger=Depends(get_messenger)
 ):
@@ -47,13 +47,13 @@ async def start_measurement(
         measurement_state.wait_for_post_meta = instructions.wait_for_post_meta
         measurement_state.start_time = start.isoformat()
         try:
-            measurement_state.tool_name = await network.get_name(node="STH 1")
+            measurement_state.tool_name = await system.sensor_node.get_name()
             logger.debug(f"Tool found - name: {measurement_state.tool_name}")
         except Exception:
             measurement_state.tool_name = "noname"
             logger.error(f"Tool not found!")
         measurement_state.instructions = instructions
-        measurement_state.task = asyncio.create_task(run_measurement(network, instructions, measurement_state, general_messenger))
+        measurement_state.task = asyncio.create_task(run_measurement(system, instructions, measurement_state, general_messenger))
         logger.info(f"Created measurement task with tool <{measurement_state.tool_name}> and timeout of {instructions.time}")
 
         message = "Measurement started successfully."

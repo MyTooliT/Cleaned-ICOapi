@@ -1,10 +1,11 @@
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
-from mytoolit.can import NoResponseError
-from mytoolit.can.network import Network
+from icotronic.can.error import NoResponseError
+from icostate import ICOsystem
+
 from icoapi.scripts.errors import HTTP_404_STH_UNREACHABLE_EXCEPTION, HTTP_404_STH_UNREACHABLE_SPEC, HTTP_502_CAN_NO_RESPONSE_SPEC, HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 from icoapi.models.models import ADCValues, STHDeviceResponseModel, STHRenameRequestModel, STHRenameResponseModel
-from icoapi.models.globals import get_network
+from icoapi.models.globals import get_system
 from icoapi.scripts.sth_scripts import connect_sth_device_by_mac, disconnect_sth_devices, get_sth_devices_from_network, \
     read_sth_adc, rename_sth_device, write_sth_adc
 
@@ -54,10 +55,10 @@ router = APIRouter(
         502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
-async def sth(network: Network = Depends(get_network)) -> list[STHDeviceResponseModel]:
+async def sth(system: ICOsystem = Depends(get_system)) -> list[STHDeviceResponseModel]:
     """Get a list of available sensor devices"""
     try:
-        devices = await get_sth_devices_from_network(network)
+        devices = await get_sth_devices_from_network(system)
         return [STHDeviceResponseModel.from_network(device) for device in devices]
     except NoResponseError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
@@ -76,10 +77,10 @@ async def sth(network: Network = Depends(get_network)) -> list[STHDeviceResponse
 )
 async def sth_connect(
         mac_address: Annotated[str, Body(embed=True)],
-        network: Network = Depends(get_network)
+        system: ICOsystem = Depends(get_system)
 ) -> None:
     try:
-        await connect_sth_device_by_mac(network, mac_address)
+        await connect_sth_device_by_mac(system, mac_address)
         return None
     except TimeoutError:
         raise HTTP_404_STH_UNREACHABLE_EXCEPTION
@@ -97,9 +98,9 @@ async def sth_connect(
         502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
-async def sth_disconnect(network: Network = Depends(get_network)) -> None:
+async def sth_disconnect(system: ICOsystem = Depends(get_system)) -> None:
     try:
-        await disconnect_sth_devices(network)
+        await disconnect_sth_devices(system)
         return None
     except NoResponseError:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
@@ -117,10 +118,10 @@ async def sth_disconnect(network: Network = Depends(get_network)) -> None:
 )
 async def sth_rename(
     device_info: STHRenameRequestModel,
-    network: Network = Depends(get_network)
+    system: ICOsystem = Depends(get_system)
 ) -> STHRenameResponseModel:
     try:
-        return await rename_sth_device(network, device_info.mac_address, device_info.new_name)
+        return await rename_sth_device(system, device_info.mac_address, device_info.new_name)
     except TimeoutError:
         raise HTTP_404_STH_UNREACHABLE_EXCEPTION
     except NoResponseError:
@@ -157,9 +158,9 @@ async def sth_rename(
         502: HTTP_502_CAN_NO_RESPONSE_SPEC
     }
 )
-async def read_adc(network: Network = Depends(get_network)) -> ADCValues:
+async def read_adc(system: ICOsystem = Depends(get_system)) -> ADCValues:
     try:
-        values = await read_sth_adc(network)
+        values = await read_sth_adc(system)
         if values is not None:
             return ADCValues(**values)
         else:
@@ -177,10 +178,10 @@ async def read_adc(network: Network = Depends(get_network)) -> ADCValues:
 })
 async def write_adc(
     config: ADCValues,
-    network: Network = Depends(get_network)
+    system: ICOsystem = Depends(get_system)
 ) -> None:
     try:
-        await write_sth_adc(network, config)
+        await write_sth_adc(system, config)
         return None
     except TimeoutError:
         raise HTTP_404_STH_UNREACHABLE_EXCEPTION

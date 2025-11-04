@@ -1,8 +1,9 @@
 import asyncio
 import logging
 from typing import List
-from mytoolit.can.network import CANInitError, Network
 from starlette.websockets import WebSocket
+
+from icostate import CANInitError, ICOsystem
 
 from icoapi.models.models import Feature, MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, \
     SystemStateModel, \
@@ -13,17 +14,17 @@ from icoapi.scripts.file_handling import get_dataspace_file_path, get_disk_space
 
 logger = logging.getLogger(__name__)
 
-class NetworkSingleton:
+class ICOsystemSingleton:
     """
-    This class serves as a wrapper around the MyToolIt Network class.
-    This is required as a REST API is inherently stateless and thus to stay within one Network,
-    we need to pass it by reference to all functions. Otherwise, after every call to an endpoint,
-    the network is closed and the devices reset to their default parameters. This is intended behavior,
+    This class serves as a wrapper around the ICOsystem class.
+    This is required as a REST API is inherently stateless and thus has to keep the connection to the ICOtronic system open,
+    We need to pass it by reference to all functions. Otherwise, after every call to an endpoint,
+    the connection is closed and the devices reset to their default parameters. This is intended behavior,
     but unintuitive for a dashboard where the user should feel like continuously working with devices.
 
     Dependency injection: See https://fastapi.tiangolo.com/tutorial/dependencies/
     """
-    _instance: Network | None = None
+    _instance: ICOsystem | None = None
     _lock = asyncio.Lock()
     _messengers: list[WebSocket] = []
 
@@ -32,10 +33,11 @@ class NetworkSingleton:
         try:
             async with cls._lock:
                 if cls._instance is None:
-                    cls._instance = Network()
-                    await cls._instance.__aenter__()
+                    cls._instance = ICOsystem()
+                    # STU Connection is required for any CAN communication
+                    await cls._instance.connect_stu()
                     await get_messenger().push_messenger_update()
-                    logger.info(f"Created CAN Network instance with ID <{id(cls._instance)}>")
+                    logger.info(f"Created ICOsystem instance with ID <{id(cls._instance)}>")
         except CANInitError:
             logger.error("Cannot establish CAN connection")
 
@@ -48,10 +50,10 @@ class NetworkSingleton:
     async def close_instance(cls):
         async with cls._lock:
             if cls._instance is not None:
-                logger.debug(f"Trying to shut down CAN Network instance with ID <{id(cls._instance)}>")
-                await cls._instance.__aexit__(None, None, None)
+                logger.debug(f"Trying to disconnect CAN connection with ID <{id(cls._instance)}>")
+                await cls._instance.disconnect_stu()
                 await get_messenger().push_messenger_update()
-                logger.info(f"Successfully shut down CAN Network instance with ID <{id(cls._instance)}>")
+                logger.debug(f"Closing ICOsystem instance with ID <{id(cls._instance)}>")
                 cls._instance = None
 
     @classmethod
@@ -59,9 +61,9 @@ class NetworkSingleton:
         return cls._instance is not None
 
 
-async def get_network() -> Network:
-    network = await NetworkSingleton.get_instance()
-    return network
+async def get_system() -> ICOsystem:
+    icosystem = await ICOsystemSingleton.get_instance()
+    return icosystem
 
 
 class MeasurementState:
@@ -139,7 +141,7 @@ class MeasurementSingleton:
 
 
 async def get_measurement_state():
-    # We need a coroutine here, since `Measurement.__setattr__` 
+    # We need a coroutine here, since `Measurement.__setattr__`
     # uses `asyncio.create_task`, which requires a running event loop.
     return MeasurementSingleton().get_instance()
 
@@ -265,7 +267,7 @@ class GeneralMessenger:
             await client.send_json(SocketMessage(
                 message="state",
                 data=SystemStateModel(
-                    can_ready=NetworkSingleton.has_instance(),
+                    can_ready=ICOsystemSingleton.has_instance(),
                     disk_capacity=get_disk_space_in_gb(),
                     cloud=cloud,
                     measurement_status=state.get_status()

@@ -5,15 +5,15 @@ from pathlib import Path
 import logging
 import numpy as np
 
-import mytoolit.can.network
 import tables.exceptions
-from mytoolit.can import Network, UnsupportedFeatureException
-from mytoolit.can.adc import ADCConfiguration
-from mytoolit.can.streaming import StreamingConfiguration, StreamingData, StreamingTimeoutError
-from mytoolit.measurement.sensor import SensorConfiguration
-from mytoolit.measurement.storage import StorageData, Storage
+from icotronic.can.error import UnsupportedFeatureException
+from icotronic.can.adc import ADCConfiguration
+from icotronic.can.streaming import StreamingConfiguration, StreamingData, StreamingTimeoutError
+from icotronic.can.sensor import SensorConfiguration
+from icotronic.measurement import Storage
 from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
+from icotronic.can.error import NoResponseError
 
 from icoapi.scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
 from icoapi.scripts.file_handling import get_measurement_dir
@@ -23,7 +23,7 @@ from icoapi.scripts.sth_scripts import disconnect_sth_devices
 
 logger = logging.getLogger(__name__)
 
-async def setup_adc(network: Network, instructions: MeasurementInstructions) -> int:
+async def setup_adc(system: ICOsystem, instructions: MeasurementInstructions) -> int:
     """
     Write ADC configuration to the holder.
 
@@ -40,8 +40,8 @@ async def setup_adc(network: Network, instructions: MeasurementInstructions) -> 
     )
 
     try:
-        await network.write_adc_configuration(**adc_config)
-    except mytoolit.can.network.NoResponseError:
+        await system.set_adc_configuration(adc_config)
+    except NoResponseError:
         logger.warning("No response from CAN bus - ADC configuration not written")
 
     sample_rate = adc_config.sample_rate()
@@ -51,7 +51,7 @@ async def setup_adc(network: Network, instructions: MeasurementInstructions) -> 
 
 
 async def write_sensor_config_if_required(
-    network: Network,
+    system: ICOsystem,
     sensor_configuration: SensorConfiguration
 ) -> None:
     """
@@ -61,7 +61,7 @@ async def write_sensor_config_if_required(
     """
     if sensor_configuration.requires_channel_configuration_support():
         try:
-            await network.write_sensor_configuration(sensor_configuration)
+            await sytem.write_sensor_configuration(sensor_configuration)
         except UnsupportedFeatureException as exception:
             raise UnsupportedFeatureException(
                 f"Sensor channel configuration “{sensor_configuration}” is "
@@ -159,9 +159,7 @@ def write_metadata(prefix: MetadataPrefix, metadata: Metadata, storage: StorageD
         write_and_remove_picture_metadata(prefix, picture_parameters, metadata, storage)
 
     meta_dump = json.dumps(metadata.__dict__, default=lambda o: o.__dict__)
-    storage.add_acceleration_meta(
-        f"{prefix}_metadata", meta_dump
-    )
+    storage[f"{prefix}_metadata"] = meta_dump
     logger.info(f"Added {prefix}-measurement metadata")
 
 
@@ -258,13 +256,13 @@ def get_sendable_data_and_apply_conversion(streaming_configuration: StreamingCon
     return data_to_send
 
 async def run_measurement(
-        network: Network,
+        system: ICOsystem,
         instructions: MeasurementInstructions,
         measurement_state: MeasurementState,
         general_messenger: GeneralMessenger
 ) -> None:
     # Write ADC configuration to the holder
-    sample_rate = await setup_adc(network, instructions)
+    sample_rate = await setup_adc(system, instructions)
 
     # Create a SensorConfiguration and a StreamingConfiguration object
     # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g., that 'first' -> channel 3.
@@ -275,7 +273,7 @@ async def run_measurement(
     })
 
     # Write sensor configuration to the holder if possible / necessary.
-    await write_sensor_config_if_required(network, sensor_configuration)
+    await write_sensor_config_if_required(system, sensor_configuration)
 
     # NOTE: The array data.values only contains the activated channels. This means we need to compute the
     #       index at which each channel is located. This may not be pretty, but it works.
@@ -291,12 +289,12 @@ async def run_measurement(
 
             logger.info(f"Opened measurement file: <{measurement_file_path}> for writing")
 
-            storage.add_acceleration_meta("conversion", "true")
-            storage.add_acceleration_meta("adc_reference_voltage", f"{instructions.adc.reference_voltage}")
+            storage["conversion"] = "true"
+            storage["adc_reference_voltage"] = f"{instructions.adc.reference_voltage}"
             if instructions.meta:
                 write_metadata(MetadataPrefix.PRE, instructions.meta, storage)
 
-            async with network.open_data_stream(streaming_configuration) as stream:
+            async with system.sensor_node.open_data_stream(streaming_configuration) as stream:
 
                 logger.info(f"Opened measurement stream: <{measurement_file_path}>")
 
@@ -386,7 +384,7 @@ async def run_measurement(
                         logger.warning("Client must be disconnected, passing")
 
             if instructions.disconnect_after_measurement:
-                await disconnect_sth_devices(network)
+                await disconnect_sth_devices(system)
 
             # Send IFT value values at once after the measurement is finished.
             if instructions.ift_requested:
