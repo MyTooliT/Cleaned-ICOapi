@@ -72,7 +72,7 @@ class MeasurementState:
     It should never be instantiated outside the corresponding singleton wrapper.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.task: asyncio.Task | None = None
         self.clients: List[WebSocket] = []
         self.lock = asyncio.Lock()
@@ -86,11 +86,11 @@ class MeasurementState:
         self.pre_meta: Metadata | None = None
         self.post_meta: Metadata | None = None
 
-    def __setattr__(self, name: str, value):
+    def __setattr__(self, name: str, value) -> None:
         super().__setattr__(name, value)
         asyncio.create_task(get_messenger().push_messenger_update())
 
-    async def reset(self):
+    async def reset(self) -> None:
         self.task = None
         self.clients = []
         self.lock = asyncio.Lock()
@@ -105,7 +105,7 @@ class MeasurementState:
         self.post_meta = None
         await get_messenger().push_messenger_update()
 
-    def get_status(self):
+    def get_status(self) -> MeasurementStatus:
         return MeasurementStatus(
             running=self.running,
             name=self.name,
