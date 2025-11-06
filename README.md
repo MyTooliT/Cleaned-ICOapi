@@ -33,8 +33,10 @@ cloning this repository and running the Python script manually.
 ## Prerequisites
 
 - Python 3.12+, from the official [Python Website](https://www.python.org/downloads/)
-- [Poetry](https://python-poetry.org)
-- Support for Python virtual environments (recommended)
+- We recommend you use **one** of the following Python tools:
+  - [Poetry](https://python-poetry.org) or [`uv`](https://docs.astral.sh/uv)
+  - If you want you can also manually setup a virtual environment without these tools using [`venv`](https://docs.python.org/3/library/venv.html) directly
+  - In the description below we assume that you create a virtual environment manually and then use `poetry` to run the API server.
 
 Clone the repository and navigate into it to set up your virtual environment:
 
