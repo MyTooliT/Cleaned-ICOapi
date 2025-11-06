@@ -51,8 +51,7 @@ app.include_router(prefix='/api/v1', router=config_routes.router)
 
 
 logger = logging.getLogger(__name__)
-origins = getenv("VITE_API_ORIGINS", "")
-origins = origins.split(",")
+origins = getenv("VITE_API_ORIGINS", "").split(",")
 logger.info(f"Accepted origins for CORS: {origins}")
 app.add_middleware(
     CORSMiddleware,
