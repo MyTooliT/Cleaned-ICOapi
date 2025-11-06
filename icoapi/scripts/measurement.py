@@ -189,7 +189,7 @@ def find_picture_parameters(meta: Metadata) -> list[str]:
 def write_and_remove_picture_metadata(prefix: MetadataPrefix, picture_parameters: list[str], meta: Metadata, storage: StorageData):
     for param in picture_parameters:
         encoded_images: list[str] = []
-        for encoded_image in meta.parameters[param].values():
+        for encoded_image in meta.parameters[param].values(): # type: ignore[union-attr]
             encoded_images.append(encoded_image.encode("utf-8"))
 
         max_string_length = max(len(s) for s in encoded_images)
