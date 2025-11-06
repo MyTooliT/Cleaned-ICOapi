@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 import yaml
 from icostate import ICOsystem
+from icotronic.measurement import StorageData
 from tables import Float32Col, IsDescription, StringCol
 
 from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstructions, Sensor, PCBSensorConfiguration, \
