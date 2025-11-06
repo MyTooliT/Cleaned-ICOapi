@@ -59,4 +59,3 @@ enable-unstable-feature = ["string_processing"]
 
 [tool.mypy]
 ignore_missing_imports = true
-exclude = [ "^icoapi/" ]
