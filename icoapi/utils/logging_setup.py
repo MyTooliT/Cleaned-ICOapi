@@ -22,7 +22,7 @@ log_queue: asyncio.Queue[str] = asyncio.Queue()
 load_env_file()
 
 log_level = os.getenv("LOG_LEVEL")
-LOG_LEVEL = None if log_level is None else log_level.upper()
+LOG_LEVEL = "" if log_level is None else log_level.upper()
 LOG_USE_JSON = os.getenv("LOG_USE_JSON", "0") == "1"
 LOG_USE_COLOR = os.getenv("LOG_USE_COLOR", "0") == "1"
 LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
