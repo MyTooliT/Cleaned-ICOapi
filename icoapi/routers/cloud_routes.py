@@ -19,7 +19,7 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.post("/upload")
-async def upload_file(filename: Annotated[str, Body(embed=True)], client: StorageClient = Depends(get_trident_client), measurement_dir: str = Depends(get_measurement_dir)):
+async def upload_file(filename: Annotated[str, Body(embed=True)], client: Annotated[StorageClient, Depends(get_trident_client)], measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
     if client is None:
         logger.warning("Tried to upload file to cloud, but no cloud connection is available.")
     else:
@@ -31,7 +31,7 @@ async def upload_file(filename: Annotated[str, Body(embed=True)], client: Storag
 
 
 @router.post("/authenticate")
-async def authenticate(storage: StorageClient = Depends(get_trident_client)):
+async def authenticate(storage: Annotated[StorageClient, Depends(get_trident_client)]):
     if storage is None:
         logger.warning("Tried to authenticate to cloud, but no cloud connection is available.")
         await setup_trident()
@@ -49,7 +49,7 @@ async def authenticate(storage: StorageClient = Depends(get_trident_client)):
 
 
 @router.get("")
-async def get_cloud_files(storage: StorageClient = Depends(get_trident_client)) -> list[TridentBucketObject]:
+async def get_cloud_files(storage: Annotated[StorageClient, Depends(get_trident_client)]) -> list[TridentBucketObject]:
     if storage is None:
         logger.warning("Tried to authenticate to cloud, but no cloud connection is available.")
         await setup_trident()

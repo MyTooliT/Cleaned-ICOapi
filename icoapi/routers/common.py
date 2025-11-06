@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, status
 from fastapi.params import Depends
@@ -17,7 +18,7 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.get("/state", status_code=status.HTTP_200_OK)
-def state(measurement_state: MeasurementState = Depends(get_measurement_state), cloud: Feature = Depends(get_trident_feature)) -> SystemStateModel:
+def state(measurement_state: Annotated[MeasurementState,  Depends(get_measurement_state)], cloud: Annotated[Feature, Depends(get_trident_feature)]) -> SystemStateModel:
     return SystemStateModel(
         can_ready=ICOsystemSingleton.has_instance(),
         disk_capacity=get_disk_space_in_gb(),
@@ -35,7 +36,7 @@ async def reset_can():
 @router.websocket("/state")
 async def state_websocket(
         websocket: WebSocket,
-        messenger: GeneralMessenger = Depends(get_messenger),
+        messenger: Annotated[GeneralMessenger, Depends(get_messenger)],
 ):
     await websocket.accept()
     messenger.add_messenger(websocket)

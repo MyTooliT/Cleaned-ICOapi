@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 
 @router.get("")
 async def list_files_and_capacity(
-        measurement_dir: str = Depends(get_measurement_dir),
-        storage: StorageClient = Depends(get_trident_client)
+        measurement_dir: Annotated[str, Depends(get_measurement_dir)],
+        storage: Annotated[StorageClient, Depends(get_trident_client)]
 ) -> FileListResponseModel:
     try:
         capacity = get_disk_space_in_gb(get_drive_or_root_path())
@@ -82,7 +82,7 @@ async def list_files_and_capacity(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{name}")
-async def download_file(name: str, measurement_dir: str = Depends(get_measurement_dir)):
+async def download_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -96,7 +96,7 @@ async def download_file(name: str, measurement_dir: str = Depends(get_measuremen
         raise HTTPException(status_code=404, detail="File not found")
 
 @router.delete("/{name}")
-async def delete_file(name: str, measurement_dir: str = Depends(get_measurement_dir)):
+async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -115,7 +115,7 @@ async def delete_file(name: str, measurement_dir: str = Depends(get_measurement_
 
 
 @router.get("/analyze/{name}", response_model=ParsedMeasurement)
-async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measurement_dir)) -> StreamingResponse:
+async def get_analyzed_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> StreamingResponse:
 
     danger, cause = is_dangerous_filename(name)
     if danger:
@@ -182,7 +182,7 @@ async def get_analyzed_file(name: str, measurement_dir: str = Depends(get_measur
 
 
 @router.post("/analyze")
-async def post_analyzed_file(file: UploadFile, measurement_dir: str = Depends(get_measurement_dir)) -> PlainTextResponse:
+async def post_analyzed_file(file: UploadFile, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> PlainTextResponse:
 
     filename = get_suffixed_filename(file.filename, measurement_dir)
 
@@ -195,7 +195,7 @@ async def post_analyzed_file(file: UploadFile, measurement_dir: str = Depends(ge
 
 
 @router.get("/analyze/meta/{name}")
-async def get_file_meta(name: str, measurement_dir: str = Depends(get_measurement_dir)) -> ParsedMetadata:
+async def get_file_meta(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> ParsedMetadata:
     data = get_file_data(os.path.join(measurement_dir, name))
     return ParsedMetadata(
         acceleration=data.acceleration_meta,
@@ -208,7 +208,7 @@ async def get_file_meta(name: str, measurement_dir: str = Depends(get_measuremen
     200: { "description": "Metadata successfully overwritten" },
     404: HTTP_404_FILE_NOT_FOUND_SPEC
 })
-async def overwrite_post_meta(name: str, metadata: Metadata, measurement_dir: str = Depends(get_measurement_dir)):
+async def overwrite_post_meta(name: str, metadata: Metadata, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
@@ -227,7 +227,7 @@ async def overwrite_post_meta(name: str, metadata: Metadata, measurement_dir: st
     200: { "description": "Metadata successfully overwritten" },
     404: HTTP_404_FILE_NOT_FOUND_SPEC
 })
-async def overwrite_pre_meta(name: str, metadata: Metadata, measurement_dir: str = Depends(get_measurement_dir)):
+async def overwrite_pre_meta(name: str, metadata: Metadata, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
