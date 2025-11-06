@@ -16,6 +16,7 @@ from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
 from icotronic.can.error import NoResponseError
 
+from icoapi.models.models import ADCValues
 from icoapi.scripts.data_handling import add_sensor_data_to_storage, MeasurementSensorInfo
 from icoapi.scripts.file_handling import get_measurement_dir
 from icoapi.models.globals import GeneralMessenger, MeasurementState
@@ -32,6 +33,12 @@ async def setup_adc(system: ICOsystem, instructions: MeasurementInstructions) ->
     :param instructions: client instructions
     :return: None
     """
+
+    assert isinstance(instructions.adc, ADCValues)
+    assert isinstance(instructions.adc.prescaler, int)
+    assert isinstance(instructions.adc.acquisition_time, int)
+    assert isinstance(instructions.adc.oversampling_rate, int)
+    assert isinstance(instructions.adc.reference_voltage, float)
 
     adc_config = ADCConfiguration(
         prescaler=instructions.adc.prescaler if instructions.adc.prescaler else 2,
@@ -123,6 +130,12 @@ async def send_ift_values(
         measurement_state: MeasurementState
 ) -> None:
     logger.debug(f"IFT value computation requested for channel: <{instructions.ift_channel}>")
+    
+    assert isinstance(instructions.adc, ADCValues)
+    assert isinstance(instructions.adc.prescaler, int)
+    assert isinstance(instructions.adc.acquisition_time, int)
+    assert isinstance(instructions.adc.oversampling_rate, int)
+    assert isinstance(instructions.adc.reference_voltage, float)
 
     freq = ADCConfiguration(
         prescaler=instructions.adc.prescaler if instructions.adc.prescaler else 2,
