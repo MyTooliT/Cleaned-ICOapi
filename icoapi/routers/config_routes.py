@@ -283,9 +283,9 @@ async def get_config_backups(config_dir: str = Depends(get_config_dir)) -> Confi
         for f in fields(CONFIG_FILE_DEFINITIONS):
             DEF = getattr(CONFIG_FILE_DEFINITIONS, f.name)
             backup_entries = [
-                ConfigFileBackup(filename=backup_name, timestamp=timestamp, info_header=info_header)
-                for backup_name, timestamp, info_header in list_config_backups(config_dir, DEF.filename)
-            ]
+                ConfigFileBackup(filename=backup_name, timestamp=timestamp, info_header=info_header) # type: ignore[arg-type]
+                for backup_name, timestamp, info_header in list_config_backups(config_dir, DEF.filename) 
+            ] 
             info_header = parse_info_header_from_file(Path(config_dir) / DEF.filename)
             files.append(
                 ConfigFile(
@@ -295,8 +295,8 @@ async def get_config_backups(config_dir: str = Depends(get_config_dir)) -> Confi
                     endpoint=DEF.endpoint,
                     timestamp=datetime.fromtimestamp(os.path.getmtime(f"{config_dir}/{DEF.filename}")).isoformat(),
                     description=DEF.description,
-                    info_header=info_header,
-                )
+                    info_header=info_header, # type: ignore[arg-type]
+                ) 
             )
     except OSError as exc:
         logger.exception(f"Failed to list configuration backups in {config_dir}")
