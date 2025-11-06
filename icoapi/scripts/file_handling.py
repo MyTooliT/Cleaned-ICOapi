@@ -68,9 +68,10 @@ def tries_to_traverse_directory(received_filename: str | os.PathLike) -> bool:
     directory_traversal_linux_chars = ["/", "%2F"]
     directory_traversal_windows_chars = ["\\", "%5C"]
     forbidden_substrings = ["..", *directory_traversal_linux_chars, *directory_traversal_windows_chars]
+    filename = str(received_filename)
 
     for substring in forbidden_substrings:
-        if substring in received_filename:
+        if substring in filename:
             return True
 
     return False
