@@ -13,6 +13,7 @@ from icoapi.models.models import MeasurementInstructionChannel, MeasurementInstr
     TridentConfig
 import logging
 
+from icoapi.models.models import ADCValues
 from icoapi.scripts.config_helper import validate_dataspace_payload
 from icoapi.scripts.file_handling import ensure_folder_exists, get_sensors_file_path
 
@@ -271,6 +272,8 @@ class MeasurementSensorInfo:
         self.first_channel_sensor = get_sensor_for_channel(instructions.first)
         self.second_channel_sensor = get_sensor_for_channel(instructions.second)
         self.third_channel_sensor = get_sensor_for_channel(instructions.third)
+        assert isinstance(instructions.adc, ADCValues)
+        assert isinstance(instructions.adc.reference_voltage, float)
         self.voltage_scaling = get_voltage_from_raw(instructions.adc.reference_voltage)
 
     def get_values(self):
