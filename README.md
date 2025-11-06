@@ -2,7 +2,7 @@
 
 A REST and WebSocket API using the Python FastAPI library. You can find the official documentation [here](https://fastapi.tiangolo.com/).
 
-We currently support all operating systems which can run Python 3.10. and use a CAN interface properly
+We currently support all operating systems which can run Python 3.12 and use a CAN interface properly
 
 When the API is running, it hosts an OpenAPI compliant documentation under `/docs`, e.g. under [`localhost:33215/docs`](http://localhost:33215/docs).
 
@@ -32,7 +32,7 @@ cloning this repository and running the Python script manually.
 
 ## Prerequisites
 
-- Python 3.10+, from the official [Python Website](https://www.python.org/downloads/)
+- Python 3.12+, from the official [Python Website](https://www.python.org/downloads/)
 - [Poetry](https://python-poetry.org)
 - Support for Python virtual environments (recommended)
 
