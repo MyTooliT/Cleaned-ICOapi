@@ -11,7 +11,7 @@ from icotronic.can.error import UnsupportedFeatureException
 from icotronic.can.adc import ADCConfiguration
 from icotronic.can.streaming import StreamingConfiguration, StreamingData, StreamingTimeoutError
 from icotronic.can.sensor import SensorConfiguration
-from icotronic.measurement import Storage
+from icotronic.measurement import Storage, StorageData
 from icolyzer import iftlibrary
 from starlette.websockets import WebSocketDisconnect
 from icotronic.can.error import NoResponseError
