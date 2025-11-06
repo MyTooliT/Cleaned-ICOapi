@@ -40,6 +40,7 @@ version = "0.1.2-beta.2"
 dev = [
   "Flake8-pyproject>=1.2.3",
   "mypy",
+  "types-requests",
 ]
 test = [
   "httpx>=0.28.1",
