@@ -59,7 +59,7 @@ def client():
 
 
 @fixture
-def get_test_sensor_node(sth_prefix, client):
+def test_sensor_node(sth_prefix, client):
     response = client.get(str(sth_prefix))
 
     assert response.status_code == 200
@@ -81,8 +81,8 @@ def get_test_sensor_node(sth_prefix, client):
 
 
 @fixture
-def connect(sth_prefix, get_test_sensor_node, client):
-    node = get_test_sensor_node
+def connect(sth_prefix, test_sensor_node, client):
+    node = test_sensor_node
 
     mac_address = node["mac_address"]
     response = client.put(f"{sth_prefix}/connect", json={"mac_address": mac_address})

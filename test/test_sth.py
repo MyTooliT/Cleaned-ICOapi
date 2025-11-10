@@ -26,14 +26,14 @@ class TestSTH:
         assert len(sensor_device["name"]) <= 8
         assert 0 >= sensor_device["rssi"] >= -90
 
-    def test_connect_disconnect(self, sth_prefix, get_test_sensor_node, client) -> None:
+    def test_connect_disconnect(self, sth_prefix, test_sensor_node, client) -> None:
         """Test endpoint ``/connect`` and ``/disconnect``"""
 
         # ========================
         # = Test Normal Response =
         # ========================
 
-        node = get_test_sensor_node
+        node = test_sensor_node
 
         mac_address = node["mac_address"]
         response = client.put(
