@@ -10,14 +10,18 @@ from icoapi.scripts.file_handling import tries_to_traverse_directory
 
 logger = logging.getLogger(__name__)
 
+
 class HostNotFoundError(HTTPException):
     """Error for host not found"""
+
 
 class AuthorizationError(HTTPException):
     """Error for authorization error"""
 
+
 class PresignError(HTTPException):
     """Error representing failure in presigning"""
+
 
 class TridentConnection:
     def __init__(self, service: str, username: str, password: str, domain: str):
@@ -32,7 +36,9 @@ class TridentConnection:
         """Retrieve access token from the authentication endpoint."""
         try:
             self.session.cookies.clear()
-            response = self.session.post(f"{self.service}/auth/login", json=self.secrets)
+            response = self.session.post(
+                f"{self.service}/auth/login", json=self.secrets
+            )
             response.raise_for_status()
 
             token_data = response.json()
@@ -47,33 +53,49 @@ class TridentConnection:
 
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection Error: {e}")
-            raise HostNotFoundError("Could not find Trident API under specified address.")
+            raise HostNotFoundError(
+                "Could not find Trident API under specified address."
+            )
         except requests.HTTPError as e:
             logger.error(f"Authorization failed - raised error: {e}")
-            raise AuthorizationError(f"Trident API valid, but authorization failed.") from e
+            raise AuthorizationError(
+                f"Trident API valid, but authorization failed."
+            ) from e
         except socket.gaierror as e:
             logger.error(f"Socket failed! raised error: {e}")
-            raise HostNotFoundError(f"Could not find Trident API under specified address.")
+            raise HostNotFoundError(
+                f"Could not find Trident API under specified address."
+            )
         except Exception as e:
-            logger.error(f"Could not find Trident API under specified address - raised error: {e}")
-            raise HostNotFoundError("Could not find Trident API under specified address.") from e
-
+            logger.error(
+                "Could not find Trident API under specified address - raised"
+                f" error: {e}"
+            )
+            raise HostNotFoundError(
+                "Could not find Trident API under specified address."
+            ) from e
 
     def _refresh_with_refresh_token(self):
         """Refresh the access token using the refresh token."""
         refresh_token = self.session.cookies.get("refresh_token", domain=self.domain)
         if not refresh_token:
-            logger.error("Refresh token not found when trying to refresh authentication.")
+            logger.error(
+                "Refresh token not found when trying to refresh authentication."
+            )
 
         try:
-            response = self.session.post(f"{self.service}/auth/refresh", json={"refresh_token": refresh_token})
+            response = self.session.post(
+                f"{self.service}/auth/refresh", json={"refresh_token": refresh_token}
+            )
             response.raise_for_status()
 
             token_data = response.json()
             new_access_token = token_data.get("access_token")
             new_refresh_token = token_data.get("refresh_token")
 
-            self.session.cookies.set("refresh_token", new_refresh_token, domain=self.domain)
+            self.session.cookies.set(
+                "refresh_token", new_refresh_token, domain=self.domain
+            )
             self.session.headers.update({"Authorization": f"Bearer {new_access_token}"})
             logger.info("Access and refresh token refreshed successfully.")
             return new_access_token
@@ -111,10 +133,15 @@ class TridentConnection:
             if response.status_code == 401:
                 logger.warning("Authentication expired during session. Refreshing...")
                 self._refresh_with_refresh_token()
-                return self.session.request(method, url, **kwargs)  # Retry with new token
+                return self.session.request(
+                    method, url, **kwargs
+                )  # Retry with new token
 
             if response.status_code >= 500:
-                logger.error(f"Trident API could not be reached, raised code {response.status_code}")
+                logger.error(
+                    "Trident API could not be reached, raised code"
+                    f" {response.status_code}"
+                )
             response.raise_for_status()
             return response
         except requests.exceptions.RequestException as e:
@@ -135,7 +162,14 @@ class TridentConnection:
 
 
 class StorageClient:
-    def __init__(self, service: str, username: str, password: str, default_bucket: str, domain: str):
+    def __init__(
+        self,
+        service: str,
+        username: str,
+        password: str,
+        default_bucket: str,
+        domain: str,
+    ):
         self.connection = TridentConnection(service, username, password, domain)
         self.default_bucket = default_bucket
 
@@ -145,9 +179,11 @@ class StorageClient:
     def get_buckets(self):
         return self.connection.get("/s3/buckets").json()
 
-    def get_bucket_objects(self, bucket: str|None = None):
+    def get_bucket_objects(self, bucket: str | None = None):
         try:
-            response = self.connection.get(f"/s3/list?bucket={bucket if bucket else self.default_bucket}")
+            response = self.connection.get(
+                f"/s3/list?bucket={bucket if bucket else self.default_bucket}"
+            )
         except Exception as e:
             logger.error(f"Error getting bucket objects.")
             raise HTTPException
@@ -156,38 +192,68 @@ class StorageClient:
             return response.json()
         except json.decoder.JSONDecodeError as e:
             if response.status_code == 200:
-                logger.info(f"No objects found in bucket <{bucket if bucket else self.default_bucket}>.")
+                logger.info(
+                    "No objects found in bucket"
+                    f" <{bucket if bucket else self.default_bucket}>."
+                )
                 return []
             logger.error(f"Error with decoding JSON response: {e}")
             return []
 
-    def upload_file(self, file_path: str, filename: str, bucket: str | None = None, folder: str | None = "default"):
+    def upload_file(
+        self,
+        file_path: str,
+        filename: str,
+        bucket: str | None = None,
+        folder: str | None = "default",
+    ):
         bucket = bucket if bucket else self.default_bucket
         complete_filename_with_folder = filename
         if folder is None:
-            logger.info(f"Trying file <{filename}> to bucket <{bucket}> with no folder specified.")
+            logger.info(
+                f"Trying file <{filename}> to bucket <{bucket}> with no folder"
+                " specified."
+            )
         elif folder == "":
-            logger.warning(f"Trying file <{filename}> to bucket <{bucket}> with folder incorrectly specified as empty string; assuming no folder.")
+            logger.warning(
+                f"Trying file <{filename}> to bucket <{bucket}> with folder incorrectly"
+                " specified as empty string; assuming no folder."
+            )
         elif tries_to_traverse_directory(folder):
-            logger.error(f"Trying file <{filename}> to bucket <{bucket}> with folder <{folder}> trying to traverse directories!")
+            logger.error(
+                f"Trying file <{filename}> to bucket <{bucket}> with folder <{folder}>"
+                " trying to traverse directories!"
+            )
         else:
             complete_filename_with_folder = f"{folder}/{filename}"
-            logger.info(f"Trying file <{filename}> to bucket <{bucket}> under folder <{folder}>.")
+            logger.info(
+                f"Trying file <{filename}> to bucket <{bucket}> under folder"
+                f" <{folder}>."
+            )
 
-        presigned_url_response = self.connection.get("/s3/presigned-upload", params={
-            "bucket": bucket,
-            "key": complete_filename_with_folder,
-            "expiresInSeconds": 600
-        })
+        presigned_url_response = self.connection.get(
+            "/s3/presigned-upload",
+            params={
+                "bucket": bucket,
+                "key": complete_filename_with_folder,
+                "expiresInSeconds": 600,
+            },
+        )
 
         if presigned_url_response.status_code != 200:
-            logger.error(f"Error getting presigned URL for upload: code {presigned_url_response.status_code} with {presigned_url_response.text}")
+            logger.error(
+                "Error getting presigned URL for upload: code"
+                f" {presigned_url_response.status_code} with"
+                f" {presigned_url_response.text}"
+            )
             raise PresignError
 
         data = presigned_url_response.json()
         presigned_url = data["presignedUrl"]
         if not presigned_url:
-            logger.error(f"Error getting presigned URL for upload: no presigned URL returned.")
+            logger.error(
+                f"Error getting presigned URL for upload: no presigned URL returned."
+            )
             raise PresignError
         logger.info(f"Got presigned URL for upload: {presigned_url}")
 

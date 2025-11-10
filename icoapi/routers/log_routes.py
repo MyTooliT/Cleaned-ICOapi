@@ -3,18 +3,23 @@ import os
 import re
 import zipfile
 
-from fastapi import APIRouter, HTTPException,  Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from starlette.responses import Response, StreamingResponse
 import logging
 from icoapi.models.models import LogFileMeta, LogListResponse, LogResponse
-from icoapi.utils.logging_setup import log_watchers, LOG_PATH, parse_timestamps, LOG_NAME, LOG_BACKUP_COUNT, LOG_MAX_BYTES
-
-router = APIRouter(
-    prefix="/logs",
-    tags=["Logs"]
+from icoapi.utils.logging_setup import (
+    log_watchers,
+    LOG_PATH,
+    parse_timestamps,
+    LOG_NAME,
+    LOG_BACKUP_COUNT,
+    LOG_MAX_BYTES,
 )
 
+router = APIRouter(prefix="/logs", tags=["Logs"])
+
 logger = logging.getLogger(__name__)
+
 
 @router.get("", response_model=LogListResponse)
 def list_logs():
@@ -32,19 +37,26 @@ def list_logs():
             first_ts = last_ts = None
 
         try:
-            size=os.path.getsize(path)
+            size = os.path.getsize(path)
 
-            files.append(LogFileMeta(
-                name=name,
-                size=size,
-                first_timestamp=first_ts,
-                last_timestamp=last_ts
-            ))
+            files.append(
+                LogFileMeta(
+                    name=name,
+                    size=size,
+                    first_timestamp=first_ts,
+                    last_timestamp=last_ts,
+                )
+            )
         except FileNotFoundError:
             # This only happens when you change the files manually; and as soon as the logs fill back up it is gone
             pass
 
-    return LogListResponse(files=files, directory=base_dir, max_bytes=LOG_MAX_BYTES, backup_count=LOG_BACKUP_COUNT)
+    return LogListResponse(
+        files=files,
+        directory=base_dir,
+        max_bytes=LOG_MAX_BYTES,
+        backup_count=LOG_BACKUP_COUNT,
+    )
 
 
 @router.get("/view", response_model=LogResponse)
@@ -64,8 +76,9 @@ def view_log_file(file: str = Query(...), limit: int = Query(0)):
             if limit > 0:
                 # Efficient line-limiting (no storing the whole file)
                 from collections import deque
+
                 lines = deque(f, maxlen=limit)
-                content = ''.join(lines)
+                content = "".join(lines)
             else:
                 content = f.read()
     except Exception as e:
@@ -98,7 +111,7 @@ def download_log_file(file: str):
     return Response(
         content=content,
         media_type="text/plain",
-        headers={"Content-Disposition": f"attachment; filename={file}"}
+        headers={"Content-Disposition": f"attachment; filename={file}"},
     )
 
 
@@ -106,10 +119,7 @@ def download_log_file(file: str):
 async def download_logs_zip():
     base_dir = os.path.dirname(LOG_PATH)
     LOG_FILE_PATTERN = re.compile(r".*\.log(\.\d+)?$")
-    log_files = [
-        f for f in os.listdir(base_dir)
-        if LOG_FILE_PATTERN.fullmatch(f)
-    ]
+    log_files = [f for f in os.listdir(base_dir) if LOG_FILE_PATTERN.fullmatch(f)]
     if not log_files:
         raise HTTPException(status_code=404, detail="No log files found.")
 
@@ -125,7 +135,7 @@ async def download_logs_zip():
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=logs.zip"}
+        headers={"Content-Disposition": "attachment; filename=logs.zip"},
     )
 
 

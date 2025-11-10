@@ -14,47 +14,69 @@ from icoapi.scripts.config_helper import CONFIG_FILE_DEFINITIONS
 
 logger = logging.getLogger(__name__)
 
+
 def load_env_file():
     # First try: local development
-    env_loaded = load_dotenv(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "config", ".env"), verbose=True)
+    env_loaded = load_dotenv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "config", ".env"
+        ),
+        verbose=True,
+    )
     if not env_loaded:
         # Second try: configs directory
-        logger.warning(f"Environment variables not found in local directory. Trying to load from app data: {get_config_dir()}")
+        logger.warning(
+            "Environment variables not found in local directory. Trying to load from"
+            f" app data: {get_config_dir()}"
+        )
         env_loaded = load_dotenv(os.path.join(get_config_dir(), ".env"), verbose=True)
     if not env_loaded and is_bundled():
         # Third try: we should be in the bundled state
         bundle_dir = sys._MEIPASS
-        logger.warning(f"Environment variables not found in local directory. Trying to load from app data: {bundle_dir}")
-        env_loaded = load_dotenv(os.path.join(bundle_dir, "config", ".env"), verbose=True)
+        logger.warning(
+            "Environment variables not found in local directory. Trying to load from"
+            f" app data: {bundle_dir}"
+        )
+        env_loaded = load_dotenv(
+            os.path.join(bundle_dir, "config", ".env"), verbose=True
+        )
     if not env_loaded:
         logger.critical(f"Environment variables not found")
         raise EnvironmentError(".env not found")
 
+
 def is_bundled():
-    return getattr(sys, 'frozen', False)
+    return getattr(sys, "frozen", False)
+
 
 def get_application_dir() -> str:
     name = os.getenv("VITE_APPLICATION_FOLDER", "ICOdaq")
     return user_data_dir(name, appauthor=False)
+
 
 def get_measurement_dir() -> str:
     measurement_dir = os.path.join(get_application_dir(), "measurements")
     logger.info(f"Measurement directory: {measurement_dir}")
     return measurement_dir
 
+
 def get_config_dir() -> str:
     config_dir = os.path.join(get_application_dir(), "config")
     logger.info(f"Config directory: {config_dir}")
     return config_dir
 
+
 def get_dataspace_file_path() -> str:
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.DATASPACE.filename)
+
 
 def get_sensors_file_path() -> str:
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.SENSORS.filename)
 
+
 def get_metadata_file_path() -> str:
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.METADATA.filename)
+
 
 def copy_config_files_if_not_exists(src_path: str, dest_path: str):
     for f in os.listdir(src_path):
@@ -64,10 +86,15 @@ def copy_config_files_if_not_exists(src_path: str, dest_path: str):
             shutil.copy(os.path.join(src_path, f), os.path.join(dest_path, f))
             logger.info(f"Copied config file {f} to {dest_path}")
 
+
 def tries_to_traverse_directory(received_filename: str | os.PathLike) -> bool:
     directory_traversal_linux_chars = ["/", "%2F"]
     directory_traversal_windows_chars = ["\\", "%5C"]
-    forbidden_substrings = ["..", *directory_traversal_linux_chars, *directory_traversal_windows_chars]
+    forbidden_substrings = [
+        "..",
+        *directory_traversal_linux_chars,
+        *directory_traversal_windows_chars,
+    ]
     filename = str(received_filename)
 
     for substring in forbidden_substrings:
@@ -94,7 +121,7 @@ def is_dangerous_filename(filename: str) -> Tuple[bool, str | None]:
     return False, None
 
 
-def get_disk_space_in_gb(path_or_drive: str | os.PathLike= "/") -> DiskCapacity:
+def get_disk_space_in_gb(path_or_drive: str | os.PathLike = "/") -> DiskCapacity:
     try:
         total, used, free = shutil.disk_usage(path_or_drive)
 

@@ -6,24 +6,32 @@ from fastapi import APIRouter, status
 from fastapi.params import Depends
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from icoapi.models.globals import GeneralMessenger, MeasurementState, ICOsystemSingleton, get_measurement_state, \
-    get_messenger, get_trident_feature
+from icoapi.models.globals import (
+    GeneralMessenger,
+    MeasurementState,
+    ICOsystemSingleton,
+    get_measurement_state,
+    get_messenger,
+    get_trident_feature,
+)
 from icoapi.models.models import Feature, SocketMessage, SystemStateModel
 from icoapi.scripts.file_handling import get_disk_space_in_gb
 
-router = APIRouter(
-    tags=["General"]
-)
+router = APIRouter(tags=["General"])
 
 logger = logging.getLogger(__name__)
 
+
 @router.get("/state", status_code=status.HTTP_200_OK)
-def state(measurement_state: Annotated[MeasurementState,  Depends(get_measurement_state)], cloud: Annotated[Feature, Depends(get_trident_feature)]) -> SystemStateModel:
+def state(
+    measurement_state: Annotated[MeasurementState, Depends(get_measurement_state)],
+    cloud: Annotated[Feature, Depends(get_trident_feature)],
+) -> SystemStateModel:
     return SystemStateModel(
         can_ready=ICOsystemSingleton.has_instance(),
         disk_capacity=get_disk_space_in_gb(),
         measurement_status=measurement_state.get_status(),
-        cloud=cloud
+        cloud=cloud,
     )
 
 
@@ -35,8 +43,8 @@ async def reset_can():
 
 @router.websocket("/state")
 async def state_websocket(
-        websocket: WebSocket,
-        messenger: Annotated[GeneralMessenger, Depends(get_messenger)],
+    websocket: WebSocket,
+    messenger: Annotated[GeneralMessenger, Depends(get_messenger)],
 ):
     await websocket.accept()
     messenger.add_messenger(websocket)

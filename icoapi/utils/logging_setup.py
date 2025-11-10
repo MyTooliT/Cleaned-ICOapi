@@ -15,7 +15,6 @@ from logging.handlers import RotatingFileHandler
 from icoapi.scripts.file_handling import load_env_file
 from platformdirs import user_data_dir
 
-
 log_watchers: List[WebSocket] = []
 log_queue: asyncio.Queue[str] = asyncio.Queue()
 
@@ -31,6 +30,7 @@ LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icodaq")
 LOG_NAME = f"{LOG_NAME_WITHOUT_EXTENSION}.log"
 LOG_LEVEL_UVICORN = os.getenv("LOG_LEVEL_UVICORN", "INFO")
 
+
 def get_default_log_path() -> str:
     app_folder = os.getenv("VITE_BACKEND_MEASUREMENT_DIR", "ICOdaq")
     file_name = "icodaq.log"
@@ -39,7 +39,9 @@ def get_default_log_path() -> str:
     os.makedirs(log_dir, exist_ok=True)
     return os.path.join(log_dir, file_name)
 
+
 LOG_PATH = os.getenv("LOG_PATH", get_default_log_path())
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -51,6 +53,7 @@ class JSONFormatter(logging.Formatter):
         }
         return orjson.dumps(log_data).decode("utf-8")
 
+
 class WebSocketLogHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         try:
@@ -58,6 +61,7 @@ class WebSocketLogHandler(logging.Handler):
             log_queue.put_nowait(message)
         except Exception:
             pass
+
 
 async def log_broadcaster():
     while True:
@@ -68,13 +72,12 @@ async def log_broadcaster():
             except Exception:
                 log_watchers.remove(ws)
 
+
 def setup_logging() -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(LOG_LEVEL)
 
-    formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
     console_formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
     )
@@ -95,9 +98,7 @@ def setup_logging() -> None:
         )
 
     file_handler = RotatingFileHandler(
-        LOG_PATH,
-        maxBytes=LOG_MAX_BYTES,
-        backupCount=LOG_BACKUP_COUNT
+        LOG_PATH, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT
     )
     file_handler.setFormatter(formatter)
 

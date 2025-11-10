@@ -5,14 +5,21 @@ from starlette.websockets import WebSocket
 
 from icostate import CANInitError, ICOsystem
 
-from icoapi.models.models import Feature, MeasurementInstructions, MeasurementStatus, Metadata, SocketMessage, \
-    SystemStateModel, \
-    TridentConfig
+from icoapi.models.models import (
+    Feature,
+    MeasurementInstructions,
+    MeasurementStatus,
+    Metadata,
+    SocketMessage,
+    SystemStateModel,
+    TridentConfig,
+)
 from icoapi.models.trident import StorageClient
 from icoapi.scripts.data_handling import read_and_parse_trident_config
 from icoapi.scripts.file_handling import get_dataspace_file_path, get_disk_space_in_gb
 
 logger = logging.getLogger(__name__)
+
 
 class ICOsystemSingleton:
     """
@@ -24,6 +31,7 @@ class ICOsystemSingleton:
 
     Dependency injection: See https://fastapi.tiangolo.com/tutorial/dependencies/
     """
+
     _instance: ICOsystem | None = None
     _lock = asyncio.Lock()
     _messengers: list[WebSocket] = []
@@ -37,7 +45,9 @@ class ICOsystemSingleton:
                     # STU Connection is required for any CAN communication
                     await cls._instance.connect_stu()
                     await get_messenger().push_messenger_update()
-                    logger.info(f"Created ICOsystem instance with ID <{id(cls._instance)}>")
+                    logger.info(
+                        f"Created ICOsystem instance with ID <{id(cls._instance)}>"
+                    )
         except CANInitError as error:
             logger.error(f"Cannot establish CAN connection: {error}")
 
@@ -50,10 +60,14 @@ class ICOsystemSingleton:
     async def close_instance(cls):
         async with cls._lock:
             if cls._instance is not None:
-                logger.debug(f"Trying to disconnect CAN connection with ID <{id(cls._instance)}>")
+                logger.debug(
+                    f"Trying to disconnect CAN connection with ID <{id(cls._instance)}>"
+                )
                 await cls._instance.disconnect_stu()
                 await get_messenger().push_messenger_update()
-                logger.debug(f"Closing ICOsystem instance with ID <{id(cls._instance)}>")
+                logger.debug(
+                    f"Closing ICOsystem instance with ID <{id(cls._instance)}>"
+                )
                 cls._instance = None
 
     @classmethod
@@ -111,7 +125,7 @@ class MeasurementState:
             name=self.name,
             start_time=self.start_time,
             tool_name=self.tool_name,
-            instructions=self.instructions
+            instructions=self.instructions,
         )
 
 
@@ -150,10 +164,7 @@ class TridentHandler:
     """Singleton Wrapper for the Trident API client"""
 
     client: StorageClient | None = None
-    feature = Feature(
-        enabled=False,
-        healthy=False
-    )
+    feature = Feature(enabled=False, healthy=False)
 
     @classmethod
     async def reset(cls):
@@ -169,10 +180,13 @@ class TridentHandler:
             config.username,
             config.password,
             config.default_bucket,
-            config.domain
+            config.domain,
         )
         await get_messenger().push_messenger_update()
-        logger.info(f"Created TridentClient for user <{config.username}> at service <{config.service}>")
+        logger.info(
+            f"Created TridentClient for user <{config.username}> at service"
+            f" <{config.service}>"
+        )
 
     @classmethod
     async def set_enabled(cls):
@@ -197,12 +211,13 @@ class TridentHandler:
         logger.info(f"Set TridentHandler health to <{healthy}>")
 
     @classmethod
-    async def get_client(cls) -> StorageClient|None:
+    async def get_client(cls) -> StorageClient | None:
         return cls.client
 
 
 async def get_trident_client() -> StorageClient | None:
     return await TridentHandler.get_client()
+
 
 async def get_trident_feature() -> Feature:
     return TridentHandler.feature
@@ -224,8 +239,7 @@ async def setup_trident():
             else:
                 client.get_client().authenticate()
                 if client.is_authenticated():
-                   await handler.set_health(True)
-
+                    await handler.set_health(True)
 
     except FileNotFoundError:
         logger.warning(f"Cannot find dataspace config file under {ds_path}")
@@ -257,40 +271,44 @@ class GeneralMessenger:
             cls._clients.remove(messenger)
             logger.info("Removed WebSocket instance from general messenger list")
         except ValueError:
-            logger.warning("Tried removing WebSocket instance from general messenger list but failed.")
+            logger.warning(
+                "Tried removing WebSocket instance from general messenger list but"
+                " failed."
+            )
 
     @classmethod
     async def push_messenger_update(cls):
         state = await get_measurement_state()
         cloud = await get_trident_feature()
         for client in cls._clients:
-            await client.send_json(SocketMessage(
-                message="state",
-                data=SystemStateModel(
-                    can_ready=ICOsystemSingleton.has_instance(),
-                    disk_capacity=get_disk_space_in_gb(),
-                    cloud=cloud,
-                    measurement_status=state.get_status()
-            )).model_dump())
+            await client.send_json(
+                SocketMessage(
+                    message="state",
+                    data=SystemStateModel(
+                        can_ready=ICOsystemSingleton.has_instance(),
+                        disk_capacity=get_disk_space_in_gb(),
+                        cloud=cloud,
+                        measurement_status=state.get_status(),
+                    ),
+                ).model_dump()
+            )
 
-        if(len(cls._clients)) > 0:
+        if (len(cls._clients)) > 0:
             logger.info(f"Pushed SystemState to {len(cls._clients)} clients.")
-
 
     @classmethod
     async def send_post_meta_request(cls):
         for client in cls._clients:
-            await client.send_json(SocketMessage(
-                message="post_meta_request"
-            ).model_dump())
-
+            await client.send_json(
+                SocketMessage(message="post_meta_request").model_dump()
+            )
 
     @classmethod
     async def send_post_meta_completed(cls):
         for client in cls._clients:
-            await client.send_json(SocketMessage(
-                message="post_meta_completed"
-            ).model_dump())
+            await client.send_json(
+                SocketMessage(message="post_meta_completed").model_dump()
+            )
 
 
 def get_messenger():

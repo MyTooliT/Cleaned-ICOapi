@@ -11,17 +11,21 @@ from icoapi.models.models import TridentBucketObject
 from icoapi.models.trident import AuthorizationError, HostNotFoundError, StorageClient
 from icoapi.scripts.file_handling import get_measurement_dir
 
-router = APIRouter(
-    prefix="/cloud",
-    tags=["Cloud Connection"]
-)
+router = APIRouter(prefix="/cloud", tags=["Cloud Connection"])
 
 logger = logging.getLogger(__name__)
 
+
 @router.post("/upload")
-async def upload_file(filename: Annotated[str, Body(embed=True)], client: Annotated[StorageClient, Depends(get_trident_client)], measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+async def upload_file(
+    filename: Annotated[str, Body(embed=True)],
+    client: Annotated[StorageClient, Depends(get_trident_client)],
+    measurement_dir: Annotated[str, Depends(get_measurement_dir)],
+):
     if client is None:
-        logger.warning("Tried to upload file to cloud, but no cloud connection is available.")
+        logger.warning(
+            "Tried to upload file to cloud, but no cloud connection is available."
+        )
     else:
         try:
             client.upload_file(os.path.join(measurement_dir, filename), filename)
@@ -33,7 +37,9 @@ async def upload_file(filename: Annotated[str, Body(embed=True)], client: Annota
 @router.post("/authenticate")
 async def authenticate(storage: Annotated[StorageClient, Depends(get_trident_client)]):
     if storage is None:
-        logger.warning("Tried to authenticate to cloud, but no cloud connection is available.")
+        logger.warning(
+            "Tried to authenticate to cloud, but no cloud connection is available."
+        )
         await setup_trident()
     else:
         storage.revoke_auth()
@@ -49,9 +55,13 @@ async def authenticate(storage: Annotated[StorageClient, Depends(get_trident_cli
 
 
 @router.get("")
-async def get_cloud_files(storage: Annotated[StorageClient, Depends(get_trident_client)]) -> list[TridentBucketObject]:
+async def get_cloud_files(
+    storage: Annotated[StorageClient, Depends(get_trident_client)],
+) -> list[TridentBucketObject]:
     if storage is None:
-        logger.warning("Tried to authenticate to cloud, but no cloud connection is available.")
+        logger.warning(
+            "Tried to authenticate to cloud, but no cloud connection is available."
+        )
         await setup_trident()
         return []
     else:

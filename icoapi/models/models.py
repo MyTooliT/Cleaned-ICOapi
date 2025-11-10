@@ -22,7 +22,8 @@ class STHDeviceResponseModel(BaseModel):
             name=original_object.name,
             device_number=original_object.sensor_node_number,
             mac_address=original_object.mac_address.format(),
-            rssi=original_object.rssi)
+            rssi=original_object.rssi,
+        )
 
 
 class STHRenameRequestModel(BaseModel):
@@ -32,6 +33,7 @@ class STHRenameRequestModel(BaseModel):
 
 class STHRenameResponseModel(BaseModel):
     """Response Model for renaming a STH device"""
+
     name: str
     old_name: str
     mac_address: str
@@ -70,12 +72,14 @@ class MeasurementInstructionChannel:
 
 @dataclass
 class Quantity:
-    value: float|int
+    value: float | int
     unit: str
+
 
 @unique
 class MetadataPrefix(StrEnum):
     """Enum for metadata prefixes"""
+
     PRE = "pre"
     POST = "post"
 
@@ -84,7 +88,7 @@ class MetadataPrefix(StrEnum):
 class Metadata:
     version: str
     profile: str
-    parameters: Dict[str, Quantity|Any]
+    parameters: Dict[str, Quantity | Any]
 
 
 @dataclass
@@ -136,6 +140,7 @@ class DataValueModel(BaseModel, JSONEncoder):
 @dataclass
 class FileCloudDetails:
     """Data model for details of file on cloud"""
+
     is_uploaded: bool
     upload_timestamp: str | None
 
@@ -204,6 +209,7 @@ class Feature:
 
 class SystemStateModel(BaseModel, JSONEncoder):
     """Data model for API state"""
+
     can_ready: bool
     disk_capacity: DiskCapacity
     measurement_status: MeasurementStatus
@@ -212,6 +218,7 @@ class SystemStateModel(BaseModel, JSONEncoder):
 
 class SocketMessage(BaseModel, JSONEncoder):
     """Data model for websocket message"""
+
     message: str
     data: Optional[Any] = None
 
@@ -281,18 +288,17 @@ class Sensor(BaseModel):
     # This will be called after the model is initialized
     @model_validator(mode="before")
     def calculate_scaling_factor_and_offset(cls, values):
-        phys_min = values.get('phys_min')
-        phys_max = values.get('phys_max')
-        volt_min = values.get('volt_min')
-        volt_max = values.get('volt_max')
+        phys_min = values.get("phys_min")
+        phys_max = values.get("phys_max")
+        volt_min = values.get("volt_min")
+        volt_max = values.get("volt_max")
 
         scaling_factor = (phys_max - phys_min) / (volt_max - volt_min)
         offset = phys_max - scaling_factor * volt_max
 
-        values['scaling_factor'] = scaling_factor
-        values['offset'] = offset
+        values["scaling_factor"] = scaling_factor
+        values["offset"] = offset
         return values
-
 
     def convert_to_phys(self, volt_value: float) -> float:
         return volt_value * self.scaling_factor + self.offset
@@ -317,6 +323,7 @@ class HDF5NodeInfo(BaseModel, JSONEncoder):
     type: str
     path: str
     attributes: dict[str, Any]
+
 
 @dataclass
 class ParsedHDF5FileContent(JSONEncoder):
@@ -367,4 +374,3 @@ class ConfigResponse:
 class ConfigRestoreRequest(BaseModel):
     filename: str
     backup_filename: str
-

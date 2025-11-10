@@ -4,7 +4,10 @@ from icotronic.can.error import ErrorResponseError, NoResponseError
 from icoapi.models.models import STUDeviceResponseModel
 from icoapi.models.globals import MeasurementState, get_measurement_state, get_system
 from icoapi.scripts.stu_scripts import reset_stu, get_stu
-from icoapi.scripts.errors import HTTP_502_CAN_NO_RESPONSE_EXCEPTION, HTTP_502_CAN_NO_RESPONSE_SPEC
+from icoapi.scripts.errors import (
+    HTTP_502_CAN_NO_RESPONSE_EXCEPTION,
+    HTTP_502_CAN_NO_RESPONSE_SPEC,
+)
 
 router = APIRouter(
     prefix="/stu",
@@ -12,7 +15,7 @@ router = APIRouter(
 )
 
 
-@router.get('')
+@router.get("")
 async def stu(system: ICOsystem = Depends(get_system)) -> list[STUDeviceResponseModel]:
     try:
         return await get_stu(system)
@@ -21,13 +24,13 @@ async def stu(system: ICOsystem = Depends(get_system)) -> list[STUDeviceResponse
 
 
 @router.put(
-    '/reset',
+    "/reset",
     responses={
         200: {
             "description": "Indicates the STU has been reset.",
         },
-        502: HTTP_502_CAN_NO_RESPONSE_SPEC
-    }
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC,
+    },
 )
 async def stu_reset(
     system: ICOsystem = Depends(get_system),
@@ -41,20 +44,17 @@ async def stu_reset(
 
 
 @router.get(
-    '/connected',
+    "/connected",
     response_model=bool,
     responses={
         200: {
             "description": "Returns true if the STU is connected, false otherwise.",
             "content": {
-                "application/json": {
-                    "schema": {"type": "boolean"},
-                    "example": True
-                }
-            }
+                "application/json": {"schema": {"type": "boolean"}, "example": True}
+            },
         },
-        502: HTTP_502_CAN_NO_RESPONSE_SPEC
-    }
+        502: HTTP_502_CAN_NO_RESPONSE_SPEC,
+    },
 )
 async def stu_connected(system: ICOsystem = Depends(get_system)):
     try:

@@ -15,29 +15,46 @@ from starlette.responses import PlainTextResponse
 from tables import NoSuchNodeError, Node, Table
 
 from icoapi.models.globals import get_trident_client
-from icoapi.models.models import Dataset, DiskCapacity, FileCloudDetails, FileListResponseModel, HDF5NodeInfo, \
-    MeasurementFileDetails, \
-    Metadata, MetadataPrefix, ParsedHDF5FileContent, ParsedMeasurement, \
-    ParsedMetadata, Sensor, TridentBucketObject
+from icoapi.models.models import (
+    Dataset,
+    DiskCapacity,
+    FileCloudDetails,
+    FileListResponseModel,
+    HDF5NodeInfo,
+    MeasurementFileDetails,
+    Metadata,
+    MetadataPrefix,
+    ParsedHDF5FileContent,
+    ParsedMeasurement,
+    ParsedMetadata,
+    Sensor,
+    TridentBucketObject,
+)
 from icoapi.models.trident import StorageClient
-from icoapi.scripts.errors import HTTP_404_FILE_NOT_FOUND_EXCEPTION, HTTP_404_FILE_NOT_FOUND_SPEC
-from icoapi.scripts.file_handling import get_disk_space_in_gb, get_drive_or_root_path, get_measurement_dir, \
-    get_suffixed_filename, is_dangerous_filename
+from icoapi.scripts.errors import (
+    HTTP_404_FILE_NOT_FOUND_EXCEPTION,
+    HTTP_404_FILE_NOT_FOUND_SPEC,
+)
+from icoapi.scripts.file_handling import (
+    get_disk_space_in_gb,
+    get_drive_or_root_path,
+    get_measurement_dir,
+    get_suffixed_filename,
+    is_dangerous_filename,
+)
 import pandas as pd
 
 from icoapi.scripts.measurement import write_metadata
 
-router = APIRouter(
-    prefix="/files",
-    tags=["File Handling"]
-)
+router = APIRouter(prefix="/files", tags=["File Handling"])
 
 logger = logging.getLogger(__name__)
 
+
 @router.get("")
 async def list_files_and_capacity(
-        measurement_dir: Annotated[str, Depends(get_measurement_dir)],
-        storage: Annotated[StorageClient, Depends(get_trident_client)]
+    measurement_dir: Annotated[str, Depends(get_measurement_dir)],
+    storage: Annotated[StorageClient, Depends(get_trident_client)],
 ) -> FileListResponseModel:
     try:
         capacity = get_disk_space_in_gb(get_drive_or_root_path())
@@ -56,11 +73,12 @@ async def list_files_and_capacity(
             file_path = os.path.join(measurement_dir, filename)
             if os.path.isfile(file_path):
                 # Get file creation time and size
-                creation_time = datetime.fromtimestamp(os.path.getctime(file_path)).isoformat()
+                creation_time = datetime.fromtimestamp(
+                    os.path.getctime(file_path)
+                ).isoformat()
                 file_size = os.path.getsize(file_path)
                 cloud_details = FileCloudDetails(
-                    is_uploaded=False,
-                    upload_timestamp=None
+                    is_uploaded=False, upload_timestamp=None
                 )
                 if storage is not None:
                     matches = [file for file in cloud_files if filename in file.Key]
@@ -72,7 +90,7 @@ async def list_files_and_capacity(
                     name=filename,
                     size=file_size,
                     created=creation_time,
-                    cloud=cloud_details
+                    cloud=cloud_details,
                 )
                 files_info.append(details)
         return FileListResponseModel(capacity, files_info, measurement_dir)
@@ -81,8 +99,11 @@ async def list_files_and_capacity(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/{name}")
-async def download_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+async def download_file(
+    name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
+):
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -95,8 +116,11 @@ async def download_file(name: str, measurement_dir: Annotated[str, Depends(get_m
     else:
         raise HTTPException(status_code=404, detail="File not found")
 
+
 @router.delete("/{name}")
-async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+async def delete_file(
+    name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
+):
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -109,13 +133,17 @@ async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_mea
             os.remove(full_path)
             return {"detail": f"File '{name}' deleted successfully"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to delete file: {str(e)}"
+            )
     else:
         raise HTTPException(status_code=404, detail="File not found")
 
 
 @router.get("/analyze/{name}", response_model=ParsedMeasurement)
-async def get_analyzed_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> StreamingResponse:
+async def get_analyzed_file(
+    name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
+) -> StreamingResponse:
 
     danger, cause = is_dangerous_filename(name)
     if danger:
@@ -143,7 +171,7 @@ async def get_analyzed_file(name: str, measurement_dir: Annotated[str, Depends(g
         yield ParsedMetadata(
             acceleration=parsed_file_content.acceleration_meta,
             pictures=parsed_file_content.pictures,
-            sensors=sensors
+            sensors=sensors,
         ).model_dump_json() + "\n"
 
         # Then: yield measurement data
@@ -161,7 +189,10 @@ async def get_analyzed_file(name: str, measurement_dir: Annotated[str, Depends(g
                 name=name,
                 counter=batch_counter,
                 timestamp=batch_timestamp,
-                datasets=[Dataset(name=column, data=batch[column].tolist()) for column in datasets.columns],
+                datasets=[
+                    Dataset(name=column, data=batch[column].tolist())
+                    for column in datasets.columns
+                ],
             )
 
             # Serialize the batch as JSON and yield it
@@ -182,7 +213,9 @@ async def get_analyzed_file(name: str, measurement_dir: Annotated[str, Depends(g
 
 
 @router.post("/analyze")
-async def post_analyzed_file(file: UploadFile, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> PlainTextResponse:
+async def post_analyzed_file(
+    file: UploadFile, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
+) -> PlainTextResponse:
 
     assert file.filename is not None
     filename = get_suffixed_filename(file.filename, measurement_dir)
@@ -196,20 +229,31 @@ async def post_analyzed_file(file: UploadFile, measurement_dir: Annotated[str, D
 
 
 @router.get("/analyze/meta/{name}")
-async def get_file_meta(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]) -> ParsedMetadata:
+async def get_file_meta(
+    name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
+) -> ParsedMetadata:
     data = get_file_data(os.path.join(measurement_dir, name))
     return ParsedMetadata(
         acceleration=data.acceleration_meta,
         pictures=data.pictures,
-        sensors=[Sensor(**sensor) for sensor in data.sensor_df.to_dict(orient="records")]
+        sensors=[
+            Sensor(**sensor) for sensor in data.sensor_df.to_dict(orient="records")
+        ],
     )
 
 
-@router.post("/post_meta/{name}", responses={
-    200: { "description": "Metadata successfully overwritten" },
-    404: HTTP_404_FILE_NOT_FOUND_SPEC
-})
-async def overwrite_post_meta(name: str, metadata: Metadata, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+@router.post(
+    "/post_meta/{name}",
+    responses={
+        200: {"description": "Metadata successfully overwritten"},
+        404: HTTP_404_FILE_NOT_FOUND_SPEC,
+    },
+)
+async def overwrite_post_meta(
+    name: str,
+    metadata: Metadata,
+    measurement_dir: Annotated[str, Depends(get_measurement_dir)],
+):
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
@@ -220,15 +264,24 @@ async def overwrite_post_meta(name: str, metadata: Metadata, measurement_dir: An
             node: Node = storage.hdf.get_node("/acceleration")
             del node.attrs["post_metadata"]
         except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            )
         write_metadata(MetadataPrefix.POST, metadata, storage)
 
 
-@router.post("/pre_meta/{name}", responses={
-    200: { "description": "Metadata successfully overwritten" },
-    404: HTTP_404_FILE_NOT_FOUND_SPEC
-})
-async def overwrite_pre_meta(name: str, metadata: Metadata, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+@router.post(
+    "/pre_meta/{name}",
+    responses={
+        200: {"description": "Metadata successfully overwritten"},
+        404: HTTP_404_FILE_NOT_FOUND_SPEC,
+    },
+)
+async def overwrite_pre_meta(
+    name: str,
+    metadata: Metadata,
+    measurement_dir: Annotated[str, Depends(get_measurement_dir)],
+):
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
@@ -239,18 +292,21 @@ async def overwrite_pre_meta(name: str, metadata: Metadata, measurement_dir: Ann
             node: Node = storage.hdf.get_node("/acceleration")
             del node.attrs["pre_metadata"]
         except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            )
         write_metadata(MetadataPrefix.PRE, metadata, storage)
 
 
 def get_node_names(hdf5_file_handle: tables.File) -> list[str]:
-    nodes = hdf5_file_handle.list_nodes('/')
+    nodes = hdf5_file_handle.list_nodes("/")
     return [node._v_pathname for node in nodes]
 
 
 def get_picture_node_names(hdf5_file_handle: tables.File) -> list[str]:
     names = get_node_names(hdf5_file_handle)
     return [name for name in names if "pictures" in name]
+
 
 def parse_json_if_possible(val):
     """
@@ -260,7 +316,7 @@ def parse_json_if_possible(val):
     # Only attempt on str/bytes
     if isinstance(val, (bytes, bytearray)):
         try:
-            text = val.decode('utf-8')
+            text = val.decode("utf-8")
         except UnicodeDecodeError:
             return val
     elif isinstance(val, str):
@@ -280,10 +336,10 @@ def node_to_dict(node):
         name=node._v_name,
         path=node._v_pathname,
         type=node.__class__.__name__,
-        attributes={}
+        attributes={},
     )
 
-    for key in node._v_attrs._f_list(attrset='all'):
+    for key in node._v_attrs._f_list(attrset="all"):
         raw = node._v_attrs[key]
         # first coerce numpy‐types to Python
         if hasattr(raw, "tolist"):
@@ -297,7 +353,10 @@ def node_to_dict(node):
 
     return info
 
-def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
+
+def get_file_data(
+    file_path: str,
+) -> ParsedHDF5FileContent:
     with tables.open_file(file_path, mode="r") as file_handle:
 
         picture_node_names = get_picture_node_names(file_handle)
@@ -305,17 +364,25 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
         for node_name in picture_node_names:
             node = file_handle.get_node(node_name)
             assert isinstance(node, tables.Array)
-            pictures[node_name.removeprefix('/')] = [img.decode('utf-8') for img in node.read().tolist()]
+            pictures[node_name.removeprefix("/")] = [
+                img.decode("utf-8") for img in node.read().tolist()
+            ]
 
         try:
             acceleration_data = file_handle.get_node("/acceleration")
             assert isinstance(acceleration_data, tables.Table)
-            acceleration_df = pd.DataFrame.from_records(acceleration_data.read(), columns=acceleration_data.colnames)
+            acceleration_df = pd.DataFrame.from_records(
+                acceleration_data.read(), columns=acceleration_data.colnames
+            )
             acceleration_meta = node_to_dict(acceleration_data)
         except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            )
         except AssertionError:
-            raise HTTPException(status_code=500, detail="Acceleration data is not a table")
+            raise HTTPException(
+                status_code=500, detail="Acceleration data is not a table"
+            )
 
         try:
             for pics_key in pictures.keys():
@@ -324,10 +391,14 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
                     obj[index] = pic
                 if MetadataPrefix.PRE in pics_key:
                     stripped_key = pics_key.split(f"{MetadataPrefix.PRE}__")[1]
-                    acceleration_meta.attributes["pre_metadata"]["parameters"][stripped_key] = obj
+                    acceleration_meta.attributes["pre_metadata"]["parameters"][
+                        stripped_key
+                    ] = obj
                 elif MetadataPrefix.POST in pics_key:
                     stripped_key = pics_key.split(f"{MetadataPrefix.POST}__")[1]
-                    acceleration_meta.attributes["post_metadata"]["parameters"][stripped_key] = obj
+                    acceleration_meta.attributes["post_metadata"]["parameters"][
+                        stripped_key
+                    ] = obj
                 else:
                     logger.error(f"Unknown picture key: {pics_key}")
         except KeyError:
@@ -339,7 +410,9 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
         try:
             sensor_data = file_handle.get_node("/sensors")
             assert isinstance(sensor_data, tables.Table)
-            sensor_df = pd.DataFrame.from_records(sensor_data.read(), columns=sensor_data.colnames)
+            sensor_df = pd.DataFrame.from_records(
+                sensor_data.read(), columns=sensor_data.colnames
+            )
         except NoSuchNodeError:
             # No sensor data available; pass
             pass
@@ -347,13 +420,13 @@ def get_file_data(file_path: str,) -> ParsedHDF5FileContent:
             # sensor data available, but not in the right shape
             pass
 
-
     return ParsedHDF5FileContent(
         acceleration_df=acceleration_df,
         sensor_df=sensor_df,
         acceleration_meta=acceleration_meta,
-        pictures=pictures
+        pictures=pictures,
     )
+
 
 def ensure_dataframe_with_columns(df, required_columns) -> pd.DataFrame:
     """

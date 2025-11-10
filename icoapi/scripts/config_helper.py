@@ -47,6 +47,7 @@ class ConfigFileDescription:
     description: str
     filename: str
 
+
 @dataclass
 class ConfigFileDefinition:
     ENV: ConfigFileDescription
@@ -60,27 +61,36 @@ CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
         endpoint="env",
         title="Environment Configuration",
         description="Configuration file containing environment configurations.",
-        filename=".env"
+        filename=".env",
     ),
-    METADATA = ConfigFileDescription(
+    METADATA=ConfigFileDescription(
         endpoint="meta",
         title="Metadata Configuration",
-        description="Configuration file containing your pre- and post-measurement metadata profiles.",
-        filename="metadata.yaml"
+        description=(
+            "Configuration file containing your pre- and post-measurement metadata"
+            " profiles."
+        ),
+        filename="metadata.yaml",
     ),
     SENSORS=ConfigFileDescription(
         endpoint="sensors",
         title="Sensor Configuration",
-        description="Configuration file containing sensor definitions and tool holder configurations.",
-        filename="sensors.yaml"
+        description=(
+            "Configuration file containing sensor definitions and tool holder"
+            " configurations."
+        ),
+        filename="sensors.yaml",
     ),
     DATASPACE=ConfigFileDescription(
         endpoint="dataspace",
         title="Data Space Configuration",
-        description="Configuration file containing your data space connection settings.",
-        filename="dataspace.yaml"
-    )
+        description=(
+            "Configuration file containing your data space connection settings."
+        ),
+        filename="dataspace.yaml",
+    ),
 )
+
 
 def is_valid_string(value: Any) -> bool:
     return bool(value.strip()) if isinstance(value, str) else False
@@ -159,7 +169,9 @@ def validate_profile(profile_key: str, profile_value: dict) -> list[str]:
             if not isinstance(section, dict):
                 errors.append(f"{path_prefix} -> {stage}: expected mapping of sections")
             else:
-                validate_sections(section, ["profiles", str(profile_key), stage], errors)
+                validate_sections(
+                    section, ["profiles", str(profile_key), stage], errors
+                )
 
     return errors
 
@@ -172,7 +184,10 @@ def validate_sections(section: dict, path: list[str], errors: list[str]) -> None
     for key, value in section.items():
         current_path = path + [str(key)]
         if not isinstance(value, dict):
-            errors.append(f" -> ".join(current_path) + ": expected mapping for field definition or nested section")
+            errors.append(
+                f" -> ".join(current_path)
+                + ": expected mapping for field definition or nested section"
+            )
             continue
 
         if is_field_definition(value):
@@ -185,7 +200,9 @@ def is_field_definition(value: dict[str, Any]) -> bool:
     return FIELD_DEFINITION_REQUIRED_KEYS.issubset(value.keys())
 
 
-def validate_field_definition(field: dict[str, Any], path: list[str], errors: list[str]) -> None:
+def validate_field_definition(
+    field: dict[str, Any], path: list[str], errors: list[str]
+) -> None:
     for key in FIELD_DEFINITION_REQUIRED_KEYS:
         field_value = field.get(key)
         if not isinstance(field_value, str) or not field_value.strip():
@@ -210,18 +227,25 @@ def validate_sensors_payload(payload: Any) -> list[str]:
     else:
         for index, sensor in enumerate(sensors):
             if not isinstance(sensor, dict):
-                errors.append(f"sensors[{index}]: expected mapping with sensor definition")
+                errors.append(
+                    f"sensors[{index}]: expected mapping with sensor definition"
+                )
                 continue
 
             for field in SENSOR_REQUIRED_FIELDS:
                 value = sensor.get(field)
                 if value is None or (isinstance(value, str) and not value.strip()):
-                    errors.append(f"sensors[{index}] -> {field}: expected non-empty value")
+                    errors.append(
+                        f"sensors[{index}] -> {field}: expected non-empty value"
+                    )
 
             sensor_id = sensor.get("sensor_id")
             if isinstance(sensor_id, str):
                 if sensor_id in sensor_ids:
-                    errors.append(f"sensors[{index}] -> sensor_id: duplicate sensor_id '{sensor_id}'")
+                    errors.append(
+                        f"sensors[{index}] -> sensor_id: duplicate sensor_id"
+                        f" '{sensor_id}'"
+                    )
                 else:
                     sensor_ids.add(sensor_id)
             else:
@@ -230,11 +254,15 @@ def validate_sensors_payload(payload: Any) -> list[str]:
             for numeric_field in ("phys_min", "phys_max", "volt_min", "volt_max"):
                 value = sensor.get(numeric_field)
                 if not isinstance(value, numbers.Real):
-                    errors.append(f"sensors[{index}] -> {numeric_field}: expected numeric value")
+                    errors.append(
+                        f"sensors[{index}] -> {numeric_field}: expected numeric value"
+                    )
 
             sensor_type = sensor.get("sensor_type")
             if sensor_type is not None and not isinstance(sensor_type, str):
-                errors.append(f"sensors[{index}] -> sensor_type: expected string when provided")
+                errors.append(
+                    f"sensors[{index}] -> sensor_type: expected string when provided"
+                )
 
     configs = payload.get("sensor_configurations")
     if configs is not None:
@@ -243,36 +271,48 @@ def validate_sensors_payload(payload: Any) -> list[str]:
         else:
             for cfg_index, config in enumerate(configs):
                 if not isinstance(config, dict):
-                    errors.append(f"sensor_configurations[{cfg_index}]: expected mapping")
+                    errors.append(
+                        f"sensor_configurations[{cfg_index}]: expected mapping"
+                    )
                     continue
 
                 for key in ("configuration_id", "configuration_name"):
                     value = config.get(key)
                     if not isinstance(value, str) or not value.strip():
-                        errors.append(f"sensor_configurations[{cfg_index}] -> {key}: expected non-empty string")
+                        errors.append(
+                            f"sensor_configurations[{cfg_index}] -> {key}: expected"
+                            " non-empty string"
+                        )
 
                 channels = config.get("channels")
                 if channels is None:
                     continue
                 if not isinstance(channels, dict) or not channels:
-                    errors.append(f"sensor_configurations[{cfg_index}] -> channels: expected mapping of channel definitions")
+                    errors.append(
+                        f"sensor_configurations[{cfg_index}] -> channels: expected"
+                        " mapping of channel definitions"
+                    )
                     continue
 
                 for channel_key, channel_value in channels.items():
                     if not isinstance(channel_value, dict):
                         errors.append(
-                            f"sensor_configurations[{cfg_index}] -> channels -> {channel_key}: expected mapping with channel definition"
+                            f"sensor_configurations[{cfg_index}] -> channels ->"
+                            f" {channel_key}: expected mapping with channel definition"
                         )
                         continue
 
                     sensor_id = channel_value.get("sensor_id")
                     if not isinstance(sensor_id, str) or not sensor_id.strip():
                         errors.append(
-                            f"sensor_configurations[{cfg_index}] -> channels -> {channel_key} -> sensor_id: expected non-empty string"
+                            f"sensor_configurations[{cfg_index}] -> channels ->"
+                            f" {channel_key} -> sensor_id: expected non-empty string"
                         )
                     elif sensor_ids and sensor_id not in sensor_ids:
                         errors.append(
-                            f"sensor_configurations[{cfg_index}] -> channels -> {channel_key} -> sensor_id: unknown sensor_id '{sensor_id}'"
+                            f"sensor_configurations[{cfg_index}] -> channels ->"
+                            f" {channel_key} -> sensor_id: unknown sensor_id"
+                            f" '{sensor_id}'"
                         )
 
     default_configuration_id = payload.get("default_configuration_id")
@@ -299,17 +339,24 @@ def validate_dataspace_payload(payload: Any) -> list[str]:
             if connection.get("enabled") is False:
                 return errors
 
-            for key in ["protocol", "domain", "base_path", "username", "password", "bucket"]:
+            for key in [
+                "protocol",
+                "domain",
+                "base_path",
+                "username",
+                "password",
+                "bucket",
+            ]:
                 value = connection.get(key)
                 if not is_valid_string(value):
                     errors.append(f"connection -> {key}: expected non-empty string")
 
-
-
     return errors
 
 
-def store_config_file(content: bytes, config_dir: PathLike, filename: str) -> Tuple[Optional[Path], Path]:
+def store_config_file(
+    content: bytes, config_dir: PathLike, filename: str
+) -> Tuple[Optional[Path], Path]:
     config_path = Path(config_dir)
     config_path.mkdir(parents=True, exist_ok=True)
 
@@ -345,9 +392,9 @@ def build_backup_path(backup_dir: Path, filename: str, timestamp: str) -> Path:
 
 def split_base_and_suffix(filename: str) -> tuple[str, str]:
     path = Path(filename)
-    suffix = ''.join(path.suffixes)
+    suffix = "".join(path.suffixes)
     if suffix:
-        base = filename[:-len(suffix)]
+        base = filename[: -len(suffix)]
         if not base:
             base = filename
     else:
@@ -369,13 +416,15 @@ def parse_info_header_from_file(config_file: Path) -> ConfigFileInfoHeader | Non
                     schema_version=info.get("schema_version"),
                     config_name=info.get("config_name"),
                     config_date=info.get("config_date"),
-                    config_version=info.get("config_version")
+                    config_version=info.get("config_version"),
                 )
     else:
         return None
 
 
-def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, str, ConfigFileInfoHeader | None]]:
+def list_config_backups(
+    config_dir: PathLike, filename: str
+) -> list[tuple[str, str, ConfigFileInfoHeader | None]]:
     config_path = Path(config_dir)
     backup_dir = config_path / CONFIG_BACKUP_DIRNAME
     if not backup_dir.is_dir():
@@ -393,8 +442,8 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
         if entry_suffix != suffix or not entry_base.startswith(prefix):
             continue
 
-        remainder = entry_base[len(prefix):]
-        timestamp_piece, _, _ = remainder.partition('_')
+        remainder = entry_base[len(prefix) :]
+        timestamp_piece, _, _ = remainder.partition("_")
         if not timestamp_piece:
             continue
         try:
@@ -414,6 +463,7 @@ def list_config_backups(config_dir: PathLike, filename: str) -> list[tuple[str, 
     entries.sort(key=lambda item: item[1], reverse=True)
     return entries
 
+
 def is_backup_file_for(filename: str, backup_filename: str) -> bool:
     base_name, suffix = split_base_and_suffix(filename)
     backup_base, backup_suffix = split_base_and_suffix(backup_filename)
@@ -425,8 +475,8 @@ def is_backup_file_for(filename: str, backup_filename: str) -> bool:
     if not backup_base.startswith(prefix):
         return False
 
-    remainder = backup_base[len(prefix):]
-    timestamp_piece, _, _ = remainder.partition('_')
+    remainder = backup_base[len(prefix) :]
+    timestamp_piece, _, _ = remainder.partition("_")
     if not timestamp_piece:
         return False
 
@@ -436,4 +486,3 @@ def is_backup_file_for(filename: str, backup_filename: str) -> bool:
         return False
 
     return True
-

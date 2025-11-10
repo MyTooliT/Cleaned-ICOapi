@@ -7,13 +7,31 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from icoapi.routers import config_routes, sensor_routes, stu_routes, sth_routes, common, file_routes, \
-    measurement_routes, cloud_routes, log_routes
-from icoapi.scripts.file_handling import copy_config_files_if_not_exists, ensure_folder_exists, get_application_dir, \
-    get_config_dir, \
-    get_measurement_dir, \
-    is_bundled, load_env_file
-from icoapi.models.globals import MeasurementSingleton, ICOsystemSingleton, setup_trident
+from icoapi.routers import (
+    config_routes,
+    sensor_routes,
+    stu_routes,
+    sth_routes,
+    common,
+    file_routes,
+    measurement_routes,
+    cloud_routes,
+    log_routes,
+)
+from icoapi.scripts.file_handling import (
+    copy_config_files_if_not_exists,
+    ensure_folder_exists,
+    get_application_dir,
+    get_config_dir,
+    get_measurement_dir,
+    is_bundled,
+    load_env_file,
+)
+from icoapi.models.globals import (
+    MeasurementSingleton,
+    ICOsystemSingleton,
+    setup_trident,
+)
 from icoapi.utils.logging_setup import setup_logging
 import logging
 
@@ -38,16 +56,17 @@ async def lifespan(app: FastAPI):
     MeasurementSingleton.clear_clients()
     await ICOsystemSingleton.close_instance()
 
+
 app = FastAPI(lifespan=lifespan)
-app.include_router(prefix='/api/v1', router=stu_routes.router)
-app.include_router(prefix='/api/v1', router=sth_routes.router)
-app.include_router(prefix='/api/v1', router=common.router)
-app.include_router(prefix='/api/v1', router=file_routes.router)
-app.include_router(prefix='/api/v1', router=cloud_routes.router)
-app.include_router(prefix='/api/v1', router=measurement_routes.router)
-app.include_router(prefix='/api/v1', router=log_routes.router)
-app.include_router(prefix='/api/v1', router=sensor_routes.router)
-app.include_router(prefix='/api/v1', router=config_routes.router)
+app.include_router(prefix="/api/v1", router=stu_routes.router)
+app.include_router(prefix="/api/v1", router=sth_routes.router)
+app.include_router(prefix="/api/v1", router=common.router)
+app.include_router(prefix="/api/v1", router=file_routes.router)
+app.include_router(prefix="/api/v1", router=cloud_routes.router)
+app.include_router(prefix="/api/v1", router=measurement_routes.router)
+app.include_router(prefix="/api/v1", router=log_routes.router)
+app.include_router(prefix="/api/v1", router=sensor_routes.router)
+app.include_router(prefix="/api/v1", router=config_routes.router)
 
 
 logger = logging.getLogger(__name__)
@@ -62,8 +81,10 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
 def main():
     import uvicorn
+
     load_env_file()
     setup_logging()
 
@@ -83,12 +104,8 @@ def main():
     PORT = int(getenv("VITE_API_PORT", 33215))
     HOST = getenv("VITE_API_HOSTNAME", "0.0.0.0")
 
-    uvicorn.run(
-        "icoapi.api:app",
-        host=HOST,
-        port=PORT,
-        log_config=None
-    )
+    uvicorn.run("icoapi.api:app", host=HOST, port=PORT, log_config=None)
+
 
 if __name__ == "__main__":
     main()
