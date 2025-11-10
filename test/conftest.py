@@ -1,3 +1,5 @@
+"""Configuration for pytest"""
+
 # -- Imports ------------------------------------------------------------------
 
 from fastapi.testclient import TestClient
@@ -8,58 +10,80 @@ from icoapi.api import app
 
 # -- Fixtures -----------------------------------------------------------------
 
+# pylint: disable=redefined-outer-name
+
 
 @fixture
 def measurement_prefix():
+    """Prefix for measurement endpoints"""
+
     return "measurement"
 
 
 @fixture
 def reset_can_prefix():
+    """Prefix for CAN reset endpoint"""
+
     return "reset-can"
 
 
 @fixture
 def sensor_prefix():
+    """Prefix for sensor endpoints"""
+
     return "sensor"
 
 
 @fixture
 def sensorreset_prefix():
+    """Prefix for sensor reset endpoints"""
+
     return "sensorreset"
 
 
 @fixture
 def state_prefix():
+    """Prefix for state endpoint"""
+
     return "state"
 
 
 @fixture
 def sth_prefix():
+    """Prefix for STH endpoint"""
+
     return "sth"
 
 
 @fixture
 def stu_prefix():
+    """Prefix for STU endpoint"""
+
     return "stu"
 
 
 @fixture
 def sensor_name():
+    """Name of sensor used for testing"""
+
     return "Acceleration 100g"
 
 
 @fixture(scope="session")
 def client():
+    """Test client used to communicate with API"""
+
     with TestClient(
         app=app,
         base_url="http://test/api/v1/",
-    ) as client:
-        yield client
+    ) as test_client:
+        yield test_client
 
 
 @fixture
 def test_sensor_node(sth_prefix, client):
+    """Get test sensor node information"""
+
     response = client.get(str(sth_prefix))
 
     assert response.status_code == 200
@@ -82,6 +106,8 @@ def test_sensor_node(sth_prefix, client):
 
 @fixture
 def connect(sth_prefix, test_sensor_node, client):
+    """Connect sensor node"""
+
     node = test_sensor_node
 
     mac_address = node["mac_address"]
@@ -96,17 +122,23 @@ def connect(sth_prefix, test_sensor_node, client):
 
 @fixture
 def sensor_id(sensor_name, client):
+    """Get the sensor id of the sensor used for testing"""
+
     response = client.get("sensor")
     assert response.status_code == 200
     sensors = response.json()["sensors"]
 
+    sensor_id = None
     for config in sensors:
         if config["name"] == sensor_name:
-            return config["sensor_id"]
+            sensor_id = config["sensor_id"]
+
+    return sensor_id
 
 
 @fixture
 def measurement_configuration(connect, sensor_id):
+    """Get test measurement configuration"""
 
     node = connect
 
@@ -144,13 +176,10 @@ def measurement_configuration(connect, sensor_id):
 
 @fixture
 def measurement(measurement_prefix, measurement_configuration, client):
+    """Fixture for running measurement"""
 
     start = f"{measurement_prefix}/start"
     stop = f"{measurement_prefix}/stop"
-
-    # ========================
-    # = Test Normal Response =
-    # ========================
 
     response = client.post(start, json=measurement_configuration)
 
