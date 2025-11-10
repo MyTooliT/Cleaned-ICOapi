@@ -1,5 +1,3 @@
-from time import time
-from asyncio import sleep
 from typing import List
 import logging
 from icostate import ADCConfiguration, ICOsystem, SensorNodeInfo

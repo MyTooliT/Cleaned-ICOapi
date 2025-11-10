@@ -1,10 +1,7 @@
 import logging
 import os
-import platform
 import re
 from datetime import datetime
-from pathlib import Path
-from dotenv import load_dotenv
 from typing import List, Optional
 from fastapi import WebSocket
 import asyncio

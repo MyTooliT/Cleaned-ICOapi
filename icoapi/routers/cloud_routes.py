@@ -69,5 +69,5 @@ async def get_cloud_files(
             objects = storage.get_bucket_objects()
             return [TridentBucketObject(**obj) for obj in objects]
         except Exception as e:
-            logger.error(f"Error getting cloud files.")
+            logger.error("Error getting cloud files.")
             raise HTTPException(status_code=HTTP_502_BAD_GATEWAY) from e

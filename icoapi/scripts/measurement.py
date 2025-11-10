@@ -516,7 +516,7 @@ async def run_measurement(
                             break
 
                     if measurement_state.stop_flag:
-                        logger.info(f"Stop flag set - stopping measurement")
+                        logger.info("Stop flag set - stopping measurement")
                         break
 
                 # Send dataloss

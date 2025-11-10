@@ -61,7 +61,7 @@ async def start_measurement(
             logger.debug(f"Tool found - name: {measurement_state.tool_name}")
         except Exception:
             measurement_state.tool_name = "noname"
-            logger.error(f"Tool not found!")
+            logger.error("Tool not found!")
         measurement_state.instructions = instructions
         measurement_state.task = asyncio.create_task(
             run_measurement(system, instructions, measurement_state, general_messenger)
@@ -89,7 +89,7 @@ async def post_meta(
     meta: Metadata, measurement_state: MeasurementState = Depends(get_measurement_state)
 ):
     measurement_state.post_meta = meta
-    logger.info(f"Received and set post metadata")
+    logger.info("Received and set post metadata")
 
 
 @router.get("", response_model=MeasurementStatus)

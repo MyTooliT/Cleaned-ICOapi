@@ -1,4 +1,4 @@
-from dataclasses import asdict, fields
+from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 import logging
@@ -9,7 +9,7 @@ import yaml
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from starlette.responses import FileResponse
 
-from icoapi.models.globals import TridentHandler, get_trident_client, setup_trident
+from icoapi.models.globals import TridentHandler, setup_trident
 from icoapi.models.models import (
     ConfigFile,
     ConfigFileBackup,
@@ -17,7 +17,6 @@ from icoapi.models.models import (
     ConfigResponse,
     ConfigRestoreRequest,
 )
-from icoapi.models.trident import StorageClient
 from icoapi.scripts.config_helper import (
     ALLOWED_ENV_CONTENT_TYPES,
     ALLOWED_YAML_CONTENT_TYPES,

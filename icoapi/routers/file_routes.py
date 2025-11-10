@@ -12,12 +12,11 @@ from typing import Annotated, AsyncGenerator
 
 from icotronic.measurement import Storage
 from starlette.responses import PlainTextResponse
-from tables import NoSuchNodeError, Node, Table
+from tables import NoSuchNodeError, Node
 
 from icoapi.models.globals import get_trident_client
 from icoapi.models.models import (
     Dataset,
-    DiskCapacity,
     FileCloudDetails,
     FileListResponseModel,
     HDF5NodeInfo,
@@ -64,8 +63,8 @@ async def list_files_and_capacity(
             try:
                 objects = storage.get_bucket_objects()
                 cloud_files = [TridentBucketObject(**obj) for obj in objects]
-            except HTTPException as e:
-                logger.error(f"Error listing cloud files")
+            except HTTPException:
+                logger.error("Error listing cloud files")
             except Exception as e:
                 logger.error(f"General exception when comparing files to cloud: {e}")
         # Iterate over files in the directory
@@ -165,7 +164,7 @@ async def get_analyzed_file(
         # First: yield metadata
         sensors_raw = parsed_file_content.sensor_df.to_dict(orient="records")
         for sensor_raw in sensors_raw:
-            if not "dimension" in sensor_raw:
+            if "dimension" not in sensor_raw:
                 sensor_raw["dimension"] = ""
         sensors: list[Sensor] = [Sensor(**sensor) for sensor in sensors_raw]
         yield ParsedMetadata(

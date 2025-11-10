@@ -41,7 +41,7 @@ def load_env_file():
             os.path.join(bundle_dir, "config", ".env"), verbose=True
         )
     if not env_loaded:
-        logger.critical(f"Environment variables not found")
+        logger.critical("Environment variables not found")
         raise EnvironmentError(".env not found")
 
 

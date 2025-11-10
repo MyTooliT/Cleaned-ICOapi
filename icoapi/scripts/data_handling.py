@@ -1,11 +1,7 @@
 import os
-import sys
-import textwrap
-from os import PathLike, path, getcwd
-from pathlib import Path
-from typing import Any, List, Optional
+from os import PathLike, path
+from typing import List, Optional
 import yaml
-from icostate import ICOsystem
 from icotronic.measurement import StorageData
 from tables import Float32Col, IsDescription, StringCol
 
@@ -308,7 +304,7 @@ def get_sensor_for_channel(
         return sensor
 
     if channel_instruction.channel_number == 0:
-        logger.info(f"Disabled channel; return None")
+        logger.info("Disabled channel; return None")
         return None
 
     logger.error(
@@ -346,7 +342,7 @@ class SensorDescription(IsDescription):
 
 def add_sensor_data_to_storage(storage: StorageData, sensors: List[Sensor]) -> None:
     if not storage.hdf:
-        logger.error(f"Could not add sensors to storage; no storage found.")
+        logger.error("Could not add sensors to storage; no storage found.")
         return
 
     table = storage.hdf.create_table(

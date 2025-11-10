@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Tuple, TypedDict, Union
+from typing import Any, Optional, Tuple, Union
 import numbers
 
 import yaml
@@ -185,7 +185,7 @@ def validate_sections(section: dict, path: list[str], errors: list[str]) -> None
         current_path = path + [str(key)]
         if not isinstance(value, dict):
             errors.append(
-                f" -> ".join(current_path)
+                " -> ".join(current_path)
                 + ": expected mapping for field definition or nested section"
             )
             continue

@@ -1,6 +1,5 @@
 from icostate import ICOsystem
 from icotronic.can.error import NoResponseError
-from netaddr import EUI
 from icoapi.models.models import STUDeviceResponseModel
 
 

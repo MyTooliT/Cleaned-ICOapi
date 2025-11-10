@@ -59,12 +59,12 @@ class TridentConnection:
         except requests.HTTPError as e:
             logger.error(f"Authorization failed - raised error: {e}")
             raise AuthorizationError(
-                f"Trident API valid, but authorization failed."
+                "Trident API valid, but authorization failed."
             ) from e
         except socket.gaierror as e:
             logger.error(f"Socket failed! raised error: {e}")
             raise HostNotFoundError(
-                f"Could not find Trident API under specified address."
+                "Could not find Trident API under specified address."
             )
         except Exception as e:
             logger.error(
@@ -184,8 +184,8 @@ class StorageClient:
             response = self.connection.get(
                 f"/s3/list?bucket={bucket if bucket else self.default_bucket}"
             )
-        except Exception as e:
-            logger.error(f"Error getting bucket objects.")
+        except Exception:
+            logger.error("Error getting bucket objects.")
             raise HTTPException
 
         try:
@@ -252,7 +252,7 @@ class StorageClient:
         presigned_url = data["presignedUrl"]
         if not presigned_url:
             logger.error(
-                f"Error getting presigned URL for upload: no presigned URL returned."
+                "Error getting presigned URL for upload: no presigned URL returned."
             )
             raise PresignError
         logger.info(f"Got presigned URL for upload: {presigned_url}")
