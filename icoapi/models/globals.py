@@ -1,3 +1,5 @@
+"""Keep track of global state of API"""
+
 import asyncio
 import logging
 from typing import List
@@ -23,11 +25,13 @@ logger = logging.getLogger(__name__)
 
 class ICOsystemSingleton:
     """
-    This class serves as a wrapper around the ICOsystem class.
-    This is required as a REST API is inherently stateless and thus has to keep the connection to the ICOtronic system open,
-    We need to pass it by reference to all functions. Otherwise, after every call to an endpoint,
-    the connection is closed and the devices reset to their default parameters. This is intended behavior,
-    but unintuitive for a dashboard where the user should feel like continuously working with devices.
+    This class serves as a wrapper around the ICOsystem class. This is required
+    as a REST API is inherently stateless and thus has to keep the connection
+    to the ICOtronic system open, We need to pass it by reference to all
+    functions. Otherwise, after every call to an endpoint, the connection is
+    closed and the devices reset to their default parameters. This is intended
+    behavior, but unintuitive for a dashboard where the user should feel like
+    continuously working with devices.
 
     Dependency injection: See https://fastapi.tiangolo.com/tutorial/dependencies/
     """
@@ -38,6 +42,7 @@ class ICOsystemSingleton:
 
     @classmethod
     async def create_instance_if_none(cls):
+        """Create singleton if it does not exist already"""
         try:
             async with cls._lock:
                 if cls._instance is None:
@@ -46,38 +51,50 @@ class ICOsystemSingleton:
                     await cls._instance.connect_stu()
                     await get_messenger().push_messenger_update()
                     logger.info(
-                        f"Created ICOsystem instance with ID <{id(cls._instance)}>"
+                        "Created ICOsystem instance with ID <%s>", id(cls._instance)
                     )
         except CANInitError as error:
-            logger.error(f"Cannot establish CAN connection: {error}")
+            logger.error("Cannot establish CAN connection: %s", error)
 
     @classmethod
     async def get_instance(cls):
+        """Get singleton instance"""
+
         await cls.create_instance_if_none()
         return cls._instance
 
     @classmethod
     async def close_instance(cls):
+        """Close singleton instance"""
+
         async with cls._lock:
             if cls._instance is not None:
                 logger.debug(
-                    f"Trying to disconnect CAN connection with ID <{id(cls._instance)}>"
+                    "Trying to disconnect CAN connection with ID <%s>",
+                    id(cls._instance),
                 )
                 await cls._instance.disconnect_stu()
                 await get_messenger().push_messenger_update()
                 logger.debug(
-                    f"Closing ICOsystem instance with ID <{id(cls._instance)}>"
+                    "Closing ICOsystem instance with ID <%s>", id(cls._instance)
                 )
                 cls._instance = None
 
     @classmethod
     def has_instance(cls):
+        """Check if singleton exists"""
+
         return cls._instance is not None
 
 
 async def get_system() -> ICOsystem:
+    """Get ICOsystem singleton instance"""
+
     icosystem = await ICOsystemSingleton.get_instance()
     return icosystem
+
+
+# pylint: disable=too-many-instance-attributes
 
 
 class MeasurementState:
@@ -105,6 +122,8 @@ class MeasurementState:
         asyncio.create_task(get_messenger().push_messenger_update())
 
     async def reset(self) -> None:
+        """Reset measurement"""
+
         self.task = None
         self.clients = []
         self.lock = asyncio.Lock()
@@ -120,6 +139,8 @@ class MeasurementState:
         await get_messenger().push_messenger_update()
 
     def get_status(self) -> MeasurementStatus:
+        """Get measurement status"""
+
         return MeasurementStatus(
             running=self.running,
             name=self.name,
@@ -127,6 +148,9 @@ class MeasurementState:
             tool_name=self.tool_name,
             instructions=self.instructions,
         )
+
+
+# pylint: enable=too-many-instance-attributes
 
 
 class MeasurementSingleton:
@@ -138,26 +162,39 @@ class MeasurementSingleton:
 
     @classmethod
     def create_instance_if_none(cls):
+        """Create singleton instance if it does not exist already"""
+
         if cls._instance is None:
             cls._instance = MeasurementState()
-            logger.info(f"Created Measurement instance with ID <{id(cls._instance)}>")
+            logger.info("Created Measurement instance with ID <%s>", id(cls._instance))
 
     @classmethod
     def get_instance(cls):
+        """Get singleton instance"""
+
         cls.create_instance_if_none()
         return cls._instance
 
     @classmethod
     def clear_clients(cls):
+        """Clear list of WebSocket clients"""
+
         num_of_clients = len(cls._instance.clients)
         cls._instance.clients.clear()
-        logger.info(f"Cleared {num_of_clients} clients from measurement WebSocket list")
+        logger.info(
+            "Cleared %s clients from measurement WebSocket list", num_of_clients
+        )
 
 
 async def get_measurement_state():
+    """Get measurement singleton"""
+
     # We need a coroutine here, since `Measurement.__setattr__`
     # uses `asyncio.create_task`, which requires a running event loop.
     return MeasurementSingleton().get_instance()
+
+
+# pylint: disable=missing-function-docstring
 
 
 class TridentHandler:
@@ -184,8 +221,9 @@ class TridentHandler:
         )
         await get_messenger().push_messenger_update()
         logger.info(
-            f"Created TridentClient for user <{config.username}> at service"
-            f" <{config.service}>"
+            "Created TridentClient for user <%s> at service <%s>",
+            config.username,
+            config.service,
         )
 
     @classmethod
@@ -208,7 +246,7 @@ class TridentHandler:
     async def set_health(cls, healthy: bool):
         cls.feature.healthy = healthy
         await get_messenger().push_messenger_update()
-        logger.info(f"Set TridentHandler health to <{healthy}>")
+        logger.info("Set TridentHandler health to <%s>", healthy)
 
     @classmethod
     async def get_client(cls) -> StorageClient | None:
@@ -242,15 +280,18 @@ async def setup_trident():
                     await handler.set_health(True)
 
     except FileNotFoundError:
-        logger.warning(f"Cannot find dataspace config file under {ds_path}")
+        logger.warning("Cannot find dataspace config file under %s", ds_path)
         await TridentHandler.reset()
     except KeyError as e:
-        logger.exception(f"Cannot parse dataspace config file: {e}")
+        logger.exception("Cannot parse dataspace config file: %s", e)
         await TridentHandler.reset()
-    except Exception as e:
-        logger.error(f"Cannot establish Trident connection: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Cannot establish Trident connection: %s", e)
         await TridentHandler.reset()
         await TridentHandler.set_enabled()
+
+
+# pylint: enable=missing-function-docstring
 
 
 class GeneralMessenger:
@@ -262,11 +303,15 @@ class GeneralMessenger:
 
     @classmethod
     def add_messenger(cls, messenger: WebSocket):
+        """Add messenger client"""
+
         cls._clients.append(messenger)
         logger.info("Added WebSocket instance to general messenger list")
 
     @classmethod
     def remove_messenger(cls, messenger: WebSocket):
+        """Remove messenger client"""
+
         try:
             cls._clients.remove(messenger)
             logger.info("Removed WebSocket instance from general messenger list")
@@ -278,6 +323,8 @@ class GeneralMessenger:
 
     @classmethod
     async def push_messenger_update(cls):
+        """Push updates about general state to messenger clients"""
+
         state = await get_measurement_state()
         cloud = await get_trident_feature()
         for client in cls._clients:
@@ -294,10 +341,12 @@ class GeneralMessenger:
             )
 
         if (len(cls._clients)) > 0:
-            logger.info(f"Pushed SystemState to {len(cls._clients)} clients.")
+            logger.info("Pushed SystemState to %s clients.", len(cls._clients))
 
     @classmethod
     async def send_post_meta_request(cls):
+        """Send post measurement metadata"""
+
         for client in cls._clients:
             await client.send_json(
                 SocketMessage(message="post_meta_request").model_dump()
@@ -305,6 +354,8 @@ class GeneralMessenger:
 
     @classmethod
     async def send_post_meta_completed(cls):
+        """Send post measurement metadata completed"""
+
         for client in cls._clients:
             await client.send_json(
                 SocketMessage(message="post_meta_completed").model_dump()
@@ -312,4 +363,6 @@ class GeneralMessenger:
 
 
 def get_messenger():
+    """Get general messenger singleton"""
+
     return GeneralMessenger()
