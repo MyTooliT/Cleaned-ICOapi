@@ -1,3 +1,5 @@
+"""Tests for STU endpoint"""
+
 # -- Imports ------------------------------------------------------------------
 
 from netaddr import EUI
@@ -6,6 +8,7 @@ from netaddr import EUI
 
 
 class TestSTU:
+    """STU endpoint test methods"""
 
     def test_root(self, stu_prefix, client) -> None:
         """Test endpoint ``/``"""
