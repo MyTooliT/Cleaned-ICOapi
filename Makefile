@@ -21,6 +21,7 @@ setup:
 check:
 	uv run mypy .
 	uv run flake8 .
+	uv run pylint .
 
 .PHONY: test
 test:
