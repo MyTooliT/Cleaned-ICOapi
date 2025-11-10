@@ -1,10 +1,13 @@
+"""Data Model Information"""
+
 from enum import unique, StrEnum
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
 from json import JSONEncoder
+from typing import Any, Dict, List, Optional
 
 import pandas
 from pydantic import BaseModel, model_validator
-from dataclasses import dataclass
+
 from icostate import SensorNodeInfo
 
 
@@ -18,6 +21,7 @@ class STHDeviceResponseModel(BaseModel):
 
     @classmethod
     def from_network(cls, original_object: SensorNodeInfo):
+        """Convert sensor node information to STH device response model"""
         return STHDeviceResponseModel(
             name=original_object.name,
             device_number=original_object.sensor_node_number,
@@ -27,6 +31,8 @@ class STHDeviceResponseModel(BaseModel):
 
 
 class STHRenameRequestModel(BaseModel):
+    """Data model for renaming sensor nodes"""
+
     mac_address: str
     new_name: str
 
@@ -49,6 +55,8 @@ class STUDeviceResponseModel:
 
 
 class STUName(BaseModel):
+    """STU name information"""
+
     name: str
 
 
@@ -72,6 +80,8 @@ class MeasurementInstructionChannel:
 
 @dataclass
 class Quantity:
+    """Data model for measurement value including unit information"""
+
     value: float | int
     unit: str
 
@@ -86,9 +96,14 @@ class MetadataPrefix(StrEnum):
 
 @dataclass
 class Metadata:
+    """Metadata model"""
+
     version: str
     profile: str
     parameters: Dict[str, Quantity | Any]
+
+
+# pylint: disable=too-many-instance-attributes
 
 
 @dataclass
@@ -123,6 +138,9 @@ class MeasurementInstructions:
     meta: Metadata | None
     wait_for_post_meta: bool = False
     disconnect_after_measurement: bool = False
+
+
+# pylint: enable=too-many-instance-attributes
 
 
 class DataValueModel(BaseModel, JSONEncoder):
@@ -173,6 +191,8 @@ class FileListResponseModel:
 
 
 class Dataset(BaseModel, JSONEncoder):
+    """Measurement data"""
+
     data: list[float]
     name: str
 
@@ -188,6 +208,8 @@ class ParsedMeasurement(BaseModel, JSONEncoder):
 
 @dataclass
 class MeasurementStatus:
+    """Measurement status information"""
+
     running: bool
     name: Optional[str] = None
     start_time: Optional[str] = None
@@ -197,12 +219,16 @@ class MeasurementStatus:
 
 @dataclass
 class ControlResponse:
+    """Response to measurement start request"""
+
     message: str
     data: MeasurementStatus
 
 
 @dataclass
 class Feature:
+    """Trident feature"""
+
     enabled: bool
     healthy: bool
 
@@ -223,8 +249,13 @@ class SocketMessage(BaseModel, JSONEncoder):
     data: Optional[Any] = None
 
 
+# pylint: disable=too-many-instance-attributes
+
+
 @dataclass
 class TridentConfig:
+    """Trident configuration data"""
+
     protocol: str
     domain: str
     base_path: str
@@ -233,6 +264,11 @@ class TridentConfig:
     password: str
     default_bucket: str
     enabled: bool
+
+
+# pylint: enable=too-many-instance-attributes
+
+# pylint: disable=invalid-name, missing-class-docstring
 
 
 @dataclass
@@ -250,14 +286,21 @@ class TridentBucketObject:
     StorageClass: str
 
 
+# pylint: enable=invalid-name, missing-class-docstring
+
+
 @dataclass
 class LogResponse:
+    """Response to log requests"""
+
     filename: str
     content: str
 
 
 @dataclass
 class LogFileMeta:
+    """Log file metadata"""
+
     name: str
     size: int
     first_timestamp: Optional[str]
@@ -266,6 +309,8 @@ class LogFileMeta:
 
 @dataclass
 class LogListResponse:
+    """Response for multiple log files"""
+
     files: List[LogFileMeta]
     directory: str
     max_bytes: int
@@ -273,6 +318,8 @@ class LogListResponse:
 
 
 class Sensor(BaseModel):
+    """Sensor attributes"""
+
     name: str
     sensor_type: str | None
     sensor_id: str
@@ -285,9 +332,10 @@ class Sensor(BaseModel):
     scaling_factor: float = 1
     offset: float = 0
 
-    # This will be called after the model is initialized
     @model_validator(mode="before")
+    @classmethod
     def calculate_scaling_factor_and_offset(cls, values):
+        """This will be called after the model is initialized"""
         phys_min = values.get("phys_min")
         phys_max = values.get("phys_max")
         volt_min = values.get("volt_min")
@@ -301,11 +349,15 @@ class Sensor(BaseModel):
         return values
 
     def convert_to_phys(self, volt_value: float) -> float:
+        """Convert voltage to physical value"""
+
         return volt_value * self.scaling_factor + self.offset
 
 
 @dataclass
 class PCBSensorConfiguration:
+    """Sensor configuration for a PCB"""
+
     configuration_id: str
     configuration_name: str
     channels: dict[int, Sensor]
@@ -313,12 +365,16 @@ class PCBSensorConfiguration:
 
 @dataclass
 class AvailableSensorInformation:
+    """Information about available sensor nodes"""
+
     sensors: list[Sensor]
     configurations: list[PCBSensorConfiguration]
     default_configuration_id: str
 
 
 class HDF5NodeInfo(BaseModel, JSONEncoder):
+    """Information about HDF5 data file"""
+
     name: str
     type: str
     path: str
@@ -327,6 +383,8 @@ class HDF5NodeInfo(BaseModel, JSONEncoder):
 
 @dataclass
 class ParsedHDF5FileContent(JSONEncoder):
+    """HDF5 data file content"""
+
     acceleration_df: pandas.DataFrame
     sensor_df: pandas.DataFrame
     acceleration_meta: HDF5NodeInfo
@@ -334,6 +392,8 @@ class ParsedHDF5FileContent(JSONEncoder):
 
 
 class ParsedMetadata(BaseModel, JSONEncoder):
+    """HDF5 metadata"""
+
     acceleration: HDF5NodeInfo
     pictures: dict[str, list[str]]
     sensors: list[Sensor]
@@ -341,6 +401,8 @@ class ParsedMetadata(BaseModel, JSONEncoder):
 
 @dataclass
 class ConfigFileInfoHeader:
+    """Configuration file header information"""
+
     schema_name: str
     schema_version: str
     config_name: str
@@ -350,6 +412,8 @@ class ConfigFileInfoHeader:
 
 @dataclass
 class ConfigFileBackup:
+    """Information about configuration backup file"""
+
     filename: str
     timestamp: str
     info_header: ConfigFileInfoHeader
@@ -357,6 +421,8 @@ class ConfigFileBackup:
 
 @dataclass
 class ConfigFile:
+    """Information about configuration file"""
+
     name: str
     filename: str
     backup: list[ConfigFileBackup]
@@ -368,9 +434,13 @@ class ConfigFile:
 
 @dataclass
 class ConfigResponse:
+    """Response model for configuration file data"""
+
     files: list[ConfigFile]
 
 
 class ConfigRestoreRequest(BaseModel):
+    """Data for request to restore configuration file from backup"""
+
     filename: str
     backup_filename: str
