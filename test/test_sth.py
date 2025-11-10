@@ -1,3 +1,5 @@
+"""STH endpoint test methods"""
+
 # -- Imports ------------------------------------------------------------------
 
 from netaddr import EUI
@@ -6,6 +8,7 @@ from netaddr import EUI
 
 
 class TestSTH:
+    """STH endpoint test methods"""
 
     def test_root(self, sth_prefix, client) -> None:
         """Test endpoint ``/``"""
@@ -78,7 +81,13 @@ class TestSTH:
         assert response.json()["old_name"] == name
         assert response.json()["name"] == old_name
 
-    def test_read_adc(self, sth_prefix, client, connect) -> None:
+    def test_read_adc(
+        self,
+        sth_prefix,
+        client,
+        connect,
+        # pylint: disable=unused-argument
+    ) -> None:
         """Test endpoint ``/read-adc``"""
 
         response = client.get(f"{sth_prefix}/read-adc")
@@ -95,7 +104,13 @@ class TestSTH:
         assert "reference_voltage" in adc_configuration
         assert isinstance(adc_configuration["reference_voltage"], float)
 
-    def test_write_adc(self, sth_prefix, connect, client) -> None:
+    def test_write_adc(
+        self,
+        sth_prefix,
+        connect,
+        client,
+        # pylint: disable=unused-argument
+    ) -> None:
         """Test endpoint ``/write-adc``"""
 
         response = client.get(f"{sth_prefix}/read-adc")
