@@ -28,7 +28,7 @@ test:
 	uv run pytest
 
 .PHONY: run
-run: check
+run:
 	uv run python $(MODULE)/api.py
 	
 .PHONY: reset
