@@ -1,18 +1,21 @@
-import logging
+"""Routes for measurement data"""
 
+import asyncio
+import json
+import logging
+import os
+from datetime import datetime
+from typing import Annotated, AsyncGenerator
+
+import pandas as pd
 import tables
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.params import Depends
 from fastapi.responses import FileResponse, StreamingResponse
-import os
-from datetime import datetime
-import json
-import asyncio
-from typing import Annotated, AsyncGenerator
-
 from icotronic.measurement import Storage
 from starlette.responses import PlainTextResponse
 from tables import NoSuchNodeError, Node
+
 
 from icoapi.models.globals import get_trident_client
 from icoapi.models.models import (
@@ -41,7 +44,6 @@ from icoapi.scripts.file_handling import (
     get_suffixed_filename,
     is_dangerous_filename,
 )
-import pandas as pd
 
 from icoapi.scripts.measurement import write_metadata
 
@@ -55,6 +57,8 @@ async def list_files_and_capacity(
     measurement_dir: Annotated[str, Depends(get_measurement_dir)],
     storage: Annotated[StorageClient, Depends(get_trident_client)],
 ) -> FileListResponseModel:
+    """Get file list and storage capacity information"""
+
     try:
         capacity = get_disk_space_in_gb(get_drive_or_root_path())
         files_info: list[MeasurementFileDetails] = []
@@ -65,8 +69,8 @@ async def list_files_and_capacity(
                 cloud_files = [TridentBucketObject(**obj) for obj in objects]
             except HTTPException:
                 logger.error("Error listing cloud files")
-            except Exception as e:
-                logger.error(f"General exception when comparing files to cloud: {e}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.error("General exception when comparing files to cloud: %s", e)
         # Iterate over files in the directory
         for filename in os.listdir(measurement_dir):
             file_path = os.path.join(measurement_dir, filename)
@@ -89,14 +93,15 @@ async def list_files_and_capacity(
                 )
                 files_info.append(details)
         return FileListResponseModel(capacity, files_info, measurement_dir)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Directory not found")
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Directory not found") from error
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{name}")
 async def download_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+    """Download measurement files"""
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -104,14 +109,15 @@ async def download_file(name: str, measurement_dir: Annotated[str, Depends(get_m
         raise HTTPException(status_code=405, detail=f"Method not allowed: {cause}")
 
     full_path = os.path.join(measurement_dir, name)
-    if os.path.isfile(full_path):
-        return FileResponse(path=full_path, filename=name)
-    else:
+    if not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(path=full_path, filename=name)
 
 
 @router.delete("/{name}")
 async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]):
+    """Delete measurement file"""
 
     # Sanitization
     danger, cause = is_dangerous_filename(name)
@@ -124,7 +130,7 @@ async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_mea
             os.remove(full_path)
             return {"detail": f"File '{name}' deleted successfully"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}") from e
     else:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -133,6 +139,7 @@ async def delete_file(name: str, measurement_dir: Annotated[str, Depends(get_mea
 async def get_analyzed_file(
     name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
 ) -> StreamingResponse:
+    """Analyze measurement file"""
 
     danger, cause = is_dangerous_filename(name)
     if danger:
@@ -148,8 +155,8 @@ async def get_analyzed_file(
     total_rows = len(parsed_file_content.acceleration_df)
 
     # Streaming generator function
-    # We approach this as a StreamingResponse because reading, parsing and sending the complete dataset
-    # takes forever
+    # We approach this as a StreamingResponse because reading, parsing and
+    # sending the complete dataset takes forever
     async def data_generator() -> AsyncGenerator[str, None]:
         # First: yield metadata
         sensors_raw = parsed_file_content.sensor_df.to_dict(orient="records")
@@ -204,6 +211,7 @@ async def get_analyzed_file(
 async def post_analyzed_file(
     file: UploadFile, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
 ) -> PlainTextResponse:
+    """Upload file for analysis"""
 
     assert file.filename is not None
     filename = get_suffixed_filename(file.filename, measurement_dir)
@@ -220,6 +228,8 @@ async def post_analyzed_file(
 async def get_file_meta(
     name: str, measurement_dir: Annotated[str, Depends(get_measurement_dir)]
 ) -> ParsedMetadata:
+    """Get measurement file metadata"""
+
     data = get_file_data(os.path.join(measurement_dir, name))
     return ParsedMetadata(
         acceleration=data.acceleration_meta,
@@ -240,6 +250,8 @@ async def overwrite_post_meta(
     metadata: Metadata,
     measurement_dir: Annotated[str, Depends(get_measurement_dir)],
 ):
+    """Update post metadata in measurement file"""
+
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
@@ -249,8 +261,10 @@ async def overwrite_post_meta(
         try:
             node: Node = storage.hdf.get_node("/acceleration")
             del node.attrs["post_metadata"]
-        except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
+        except NoSuchNodeError as error:
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            ) from error
         write_metadata(MetadataPrefix.POST, metadata, storage)
 
 
@@ -266,6 +280,8 @@ async def overwrite_pre_meta(
     metadata: Metadata,
     measurement_dir: Annotated[str, Depends(get_measurement_dir)],
 ):
+    """Update pre metadata in measurement file"""
+
     file_path = os.path.join(measurement_dir, name)
     if not os.path.isfile(file_path):
         raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
@@ -275,17 +291,23 @@ async def overwrite_pre_meta(
         try:
             node: Node = storage.hdf.get_node("/acceleration")
             del node.attrs["pre_metadata"]
-        except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
+        except NoSuchNodeError as error:
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            ) from error
         write_metadata(MetadataPrefix.PRE, metadata, storage)
 
 
 def get_node_names(hdf5_file_handle: tables.File) -> list[str]:
+    """Get name of HDF5 nodes"""
+
     nodes = hdf5_file_handle.list_nodes("/")
-    return [node._v_pathname for node in nodes]
+    return [node._v_pathname for node in nodes]  # pylint: disable=protected-access
 
 
 def get_picture_node_names(hdf5_file_handle: tables.File) -> list[str]:
+    """Get name of nodes that contain picture data"""
+
     names = get_node_names(hdf5_file_handle)
     return [name for name in names if "pictures" in name]
 
@@ -313,7 +335,12 @@ def parse_json_if_possible(val):
         return val
 
 
+# pylint: disable=protected-access
+
+
 def node_to_dict(node):
+    """Convert HDF5 metadata node to dictionary"""
+
     info = HDF5NodeInfo(
         name=node._v_name,
         path=node._v_pathname,
@@ -336,9 +363,17 @@ def node_to_dict(node):
     return info
 
 
+# pylint: enable=protected-access
+
+
+# pylint: disable=too-many-locals
+
+
 def get_file_data(
     file_path: str,
 ) -> ParsedHDF5FileContent:
+    """Get HDF5 measurement data"""
+
     with tables.open_file(file_path, mode="r") as file_handle:
 
         picture_node_names = get_picture_node_names(file_handle)
@@ -357,13 +392,19 @@ def get_file_data(
                 acceleration_data.read(), columns=acceleration_data.colnames
             )
             acceleration_meta = node_to_dict(acceleration_data)
-        except NoSuchNodeError:
-            raise HTTPException(status_code=500, detail="Acceleration data not found in the file")
-        except AssertionError:
-            raise HTTPException(status_code=500, detail="Acceleration data is not a table")
+        except NoSuchNodeError as error:
+            raise HTTPException(
+                status_code=500, detail="Acceleration data not found in the file"
+            ) from error
+        except AssertionError as error:
+            raise HTTPException(
+                status_code=500, detail="Acceleration data is not a table"
+            ) from error
 
+        # pylint: disable=consider-using-dict-items, consider-iterating-dictionary
         try:
             for pics_key in pictures.keys():
+
                 obj: dict[int, str] = {}
                 for index, pic in enumerate(pictures[pics_key]):
                     obj[index] = pic
@@ -374,11 +415,13 @@ def get_file_data(
                     stripped_key = pics_key.split(f"{MetadataPrefix.POST}__")[1]
                     acceleration_meta.attributes["post_metadata"]["parameters"][stripped_key] = obj
                 else:
-                    logger.error(f"Unknown picture key: {pics_key}")
+                    logger.error("Unknown picture key: %s", pics_key)
         except KeyError:
             pass
-        except IndexError:
-            raise HTTPException(status_code=500, detail="Picture data is not prefixed.")
+        except IndexError as error:
+            raise HTTPException(status_code=500, detail="Picture data is not prefixed.") from error
+
+        # pylint: enable=consider-using-dict-items, consider-iterating-dictionary
 
         sensor_df = pd.DataFrame()
         try:
@@ -398,6 +441,9 @@ def get_file_data(
         acceleration_meta=acceleration_meta,
         pictures=pictures,
     )
+
+
+# pylint: enable=too-many-locals
 
 
 def ensure_dataframe_with_columns(df, required_columns) -> pd.DataFrame:
