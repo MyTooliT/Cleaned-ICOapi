@@ -1,3 +1,5 @@
+"""Routes for STU functionality"""
+
 from fastapi import APIRouter, Depends
 from icostate import ICOsystem
 from icotronic.can.error import ErrorResponseError, NoResponseError
@@ -17,10 +19,12 @@ router = APIRouter(
 
 @router.get("")
 async def stu(system: ICOsystem = Depends(get_system)) -> list[STUDeviceResponseModel]:
+    """Get available STU"""
+
     try:
         return await get_stu(system)
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.put(
@@ -36,11 +40,13 @@ async def stu_reset(
     system: ICOsystem = Depends(get_system),
     measurement_state: MeasurementState = Depends(get_measurement_state),
 ) -> None:
+    """Reset STU"""
+
     if await reset_stu(system):
         await measurement_state.reset()
         return None
-    else:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+
+    raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
 
 
 @router.get(
@@ -55,11 +61,13 @@ async def stu_reset(
     },
 )
 async def stu_connected(system: ICOsystem = Depends(get_system)):
+    """Check if the STU is connected to a sensor device"""
+
     try:
         return await system.is_sensor_node_connected()
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
-    except ErrorResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
-    except AttributeError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
+    except ErrorResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
+    except AttributeError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
