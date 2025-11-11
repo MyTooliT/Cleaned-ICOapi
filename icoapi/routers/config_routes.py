@@ -64,6 +64,8 @@ logger = logging.getLogger(__name__)
 
 
 async def validate_and_parse_yaml_file(file: UploadFile) -> tuple[Any, bytes]:
+    """Validate and parse YAML file"""
+
     if file.content_type and file.content_type.lower() not in ALLOWED_YAML_CONTENT_TYPES:
         raise HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION
 
@@ -75,13 +77,15 @@ async def validate_and_parse_yaml_file(file: UploadFile) -> tuple[Any, bytes]:
     try:
         parsed_yaml = yaml.safe_load(raw_content)
     except yaml.YAMLError as exc:
-        logger.error(f"Failed to parse uploaded sensors YAML: {exc}")
-        raise HTTP_400_INVALID_YAML_EXCEPTION
+        logger.error("Failed to parse uploaded sensors YAML: %s", exc)
+        raise HTTP_400_INVALID_YAML_EXCEPTION from exc
 
     return parsed_yaml, raw_content
 
 
 def get_info_header_from_yaml(parsed_yaml: Any) -> ConfigFileInfoHeader:
+    """Get configuration info header data"""
+
     info = parsed_yaml["info"]
     return ConfigFileInfoHeader(
         config_version=info["config_version"],
@@ -93,29 +97,33 @@ def get_info_header_from_yaml(parsed_yaml: Any) -> ConfigFileInfoHeader:
 
 
 def file_response(config_dir: str, filename: str, media_type: str) -> FileResponse:
+    """Get information about config file"""
+
     try:
         return FileResponse(
             os.path.join(config_dir, filename),
             media_type=media_type,
             filename=filename,
         )
-    except FileNotFoundError:
-        raise HTTP_404_FILE_NOT_FOUND_EXCEPTION
+    except FileNotFoundError as error:
+        raise HTTP_404_FILE_NOT_FOUND_EXCEPTION from error
 
 
 def store_config(content: bytes, config_dir: str, filename: str):
+    """Store configuration data"""
+
     try:
         backup_path, target_path = store_config_file(content, config_dir, filename)
     except OSError as exc:
-        logger.exception(f"Failed to store {filename} in {config_dir}")
+        logger.exception("Failed to store %s in %s", filename, config_dir)
         raise HTTP_500_CONFIG_WRITE_EXCEPTION from exc
 
     if backup_path:
-        logger.info(f"Existing {filename} moved to backup at {backup_path}")
+        logger.info("Existing %s moved to backup at %s", filename, backup_path)
     else:
-        logger.info(f"No existing {filename} found in {config_dir}; storing new file")
+        logger.info("No existing %s found in %s; storing new file", filename, config_dir)
 
-    logger.info(f"{filename} saved to {target_path}")
+    logger.info("%s saved to %s", filename, target_path)
     return backup_path, target_path
 
 
@@ -127,6 +135,8 @@ def store_config(content: bytes, config_dir: str, filename: str):
     },
 )
 async def get_metadata_file(config_dir: str = Depends(get_config_dir)) -> FileResponse:
+    """Get metadata file information"""
+
     return file_response(
         config_dir, CONFIG_FILE_DEFINITIONS.METADATA.filename, "application/x-yaml"
     )
@@ -147,6 +157,8 @@ async def upload_metadata_file(
     file: UploadFile = File(..., description="YAML metadata configuration file"),
     config_dir: str = Depends(get_config_dir),
 ):
+    """Upload YAML metadata file"""
+
     parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
 
     if parsed_yaml is None:
@@ -155,7 +167,7 @@ async def upload_metadata_file(
         errors = validate_metadata_payload(parsed_yaml)
 
     if errors:
-        logger.error(f"Metadata YAML validation failed: {errors}")
+        logger.error("Metadata YAML validation failed: %s", errors)
         error_detail = f"{HTTP_422_METADATA_SCHEMA_EXCEPTION.detail} Errors: {'; '.join(errors)}"
         raise HTTPException(
             status_code=HTTP_422_METADATA_SCHEMA_EXCEPTION.status_code,
@@ -176,6 +188,8 @@ async def upload_metadata_file(
     },
 )
 async def get_sensors_file(config_dir: str = Depends(get_config_dir)) -> FileResponse:
+    """Get sensor configuration file information"""
+
     return file_response(config_dir, CONFIG_FILE_DEFINITIONS.SENSORS.filename, "application/x-yaml")
 
 
@@ -194,6 +208,8 @@ async def upload_sensors_file(
     file: UploadFile = File(..., description="YAML sensors configuration file"),
     config_dir: str = Depends(get_config_dir),
 ):
+    """Upload sensor configuration file"""
+
     parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
 
     if parsed_yaml is None:
@@ -202,7 +218,7 @@ async def upload_sensors_file(
         errors = validate_sensors_payload(parsed_yaml)
 
     if errors:
-        logger.error(f"Sensors YAML validation failed: {errors}")
+        logger.error("Sensors YAML validation failed: %s", errors)
         error_detail = f"{HTTP_422_SENSORS_SCHEMA_EXCEPTION.detail} Errors: {'; '.join(errors)}"
         raise HTTPException(
             status_code=HTTP_422_SENSORS_SCHEMA_EXCEPTION.status_code,
@@ -227,9 +243,11 @@ async def upload_sensors_file(
     response_model=ConfigFileInfoHeader,
 )
 async def upload_dataspace_file(
-    file: UploadFile = File(..., description="YAML sensors configuration file"),
+    file: UploadFile = File(..., description="YAML dataspace configuration file"),
     config_dir: str = Depends(get_config_dir),
 ):
+    """Upload dataspace configuration file"""
+
     parsed_yaml, raw_content = await validate_and_parse_yaml_file(file)
 
     if parsed_yaml is None:
@@ -238,7 +256,7 @@ async def upload_dataspace_file(
         errors = validate_dataspace_payload(parsed_yaml)
 
     if errors:
-        logger.error(f"Dataspace YAML validation failed: {errors}")
+        logger.error("Dataspace YAML validation failed: %s", errors)
         error_detail = f"{HTTP_422_DATASPACE_SCHEMA_EXCEPTION.detail} Errors: {'; '.join(errors)}"
         raise HTTPException(
             status_code=HTTP_422_DATASPACE_SCHEMA_EXCEPTION.status_code,
@@ -263,6 +281,8 @@ async def upload_dataspace_file(
     },
 )
 async def get_env_file(config_dir: str = Depends(get_config_dir)) -> FileResponse:
+    """Get environment configuration file information"""
+
     return file_response(config_dir, CONFIG_FILE_DEFINITIONS.ENV.filename, "text/plain")
 
 
@@ -278,6 +298,8 @@ async def upload_env_file(
     file: UploadFile = File(..., description="Environment variables file"),
     config_dir: str = Depends(get_config_dir),
 ):
+    """Update environment configuration file"""
+
     if file.content_type and file.content_type.lower() not in ALLOWED_ENV_CONTENT_TYPES:
         raise HTTP_415_UNSUPPORTED_YAML_MEDIA_TYPE_EXCEPTION
 
@@ -299,12 +321,18 @@ async def upload_env_file(
 async def get_config_backups(
     config_dir: str = Depends(get_config_dir),
 ) -> ConfigResponse:
+    """Get configuration backup files"""
+
     try:
         files: list[ConfigFile] = []
         for f in fields(CONFIG_FILE_DEFINITIONS):
-            DEF = getattr(CONFIG_FILE_DEFINITIONS, f.name)
+            DEF = getattr(CONFIG_FILE_DEFINITIONS, f.name)  # pylint: disable=invalid-name
             backup_entries = [
-                ConfigFileBackup(filename=backup_name, timestamp=timestamp, info_header=info_header)  # type: ignore[arg-type]
+                ConfigFileBackup(
+                    filename=backup_name,
+                    timestamp=timestamp,
+                    info_header=info_header,  # type: ignore[arg-type]
+                )
                 for backup_name, timestamp, info_header in list_config_backups(
                     config_dir, DEF.filename
                 )
@@ -324,7 +352,7 @@ async def get_config_backups(
                 )
             )
     except OSError as exc:
-        logger.exception(f"Failed to list configuration backups in {config_dir}")
+        logger.exception("Failed to list configuration backups in %s", config_dir)
         raise HTTP_500_CONFIG_LIST_EXCEPTION from exc
 
     return ConfigResponse(files=files)
@@ -343,28 +371,30 @@ async def restore_config_file(
     payload: ConfigRestoreRequest,
     config_dir: str = Depends(get_config_dir),
 ):
+    """Restore configuration file from backup"""
+
     config_lookup = [d.filename for d in vars(CONFIG_FILE_DEFINITIONS).values()]
     if payload.filename not in config_lookup:
-        logger.error(f"Restore requested for unknown configuration file: {payload.filename}")
+        logger.error("Restore requested for unknown configuration file: %s", payload.filename)
         raise HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION
 
     backup_dir = Path(config_dir) / CONFIG_BACKUP_DIRNAME
     backup_path = backup_dir / payload.backup_filename
 
     if not backup_path.is_file():
-        logger.error(f"Requested backup for restore not found: {backup_path}")
+        logger.error("Requested backup for restore not found: %s", backup_path)
         raise HTTP_404_CONFIG_BACKUP_NOT_FOUND_EXCEPTION
 
     if not is_backup_file_for(payload.filename, payload.backup_filename):
         logger.error(
-            f"Backup {payload.backup_filename} does not match configuration {payload.filename}"
+            "Backup %s does not match configuration %s", payload.backup_filename, payload.filename
         )
         raise HTTP_400_INVALID_CONFIG_RESTORE_EXCEPTION
 
     try:
         backup_content = backup_path.read_bytes()
     except OSError as exc:
-        logger.exception(f"Failed to read backup file {backup_path}")
+        logger.exception("Failed to read backup file %s", backup_path)
         raise HTTP_500_CONFIG_RESTORE_EXCEPTION from exc
 
     try:
@@ -374,7 +404,7 @@ async def restore_config_file(
             raise HTTP_500_CONFIG_RESTORE_EXCEPTION from exc
         raise
 
-    logger.info(f"Restored {payload.filename} from backup {payload.backup_filename}")
+    logger.info("Restored %s from backup %s", payload.filename, payload.backup_filename)
 
     if payload.filename == CONFIG_FILE_DEFINITIONS.DATASPACE.filename:
         TridentHandler.client = None
