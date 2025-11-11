@@ -1,3 +1,5 @@
+"""Common endpoints"""
+
 import json
 import logging
 from typing import Annotated
@@ -27,6 +29,8 @@ def state(
     measurement_state: Annotated[MeasurementState, Depends(get_measurement_state)],
     cloud: Annotated[Feature, Depends(get_trident_feature)],
 ) -> SystemStateModel:
+    """Get system state"""
+
     return SystemStateModel(
         can_ready=ICOsystemSingleton.has_instance(),
         disk_capacity=get_disk_space_in_gb(),
@@ -37,6 +41,8 @@ def state(
 
 @router.put("/reset-can", status_code=status.HTTP_200_OK)
 async def reset_can():
+    """Reset CAN connection"""
+
     await ICOsystemSingleton.close_instance()
     await ICOsystemSingleton.create_instance_if_none()
 
@@ -46,6 +52,8 @@ async def state_websocket(
     websocket: WebSocket,
     messenger: Annotated[GeneralMessenger, Depends(get_messenger)],
 ):
+    """State WebSocket for general information about system state"""
+
     await websocket.accept()
     messenger.add_messenger(websocket)
 
