@@ -1,3 +1,5 @@
+"""Routes for STH functionality"""
+
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends
 from icotronic.can.error import NoResponseError
@@ -94,8 +96,8 @@ async def sth(system: ICOsystem = Depends(get_system)) -> list[STHDeviceResponse
     try:
         devices = await get_sth_devices_from_network(system)
         return [STHDeviceResponseModel.from_network(device) for device in devices]
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.put(
@@ -110,13 +112,15 @@ async def sth_connect(
     mac_address: Annotated[str, Body(embed=True)],
     system: ICOsystem = Depends(get_system),
 ) -> None:
+    """Connect to sensor node"""
+
     try:
         await connect_sth_device_by_mac(system, mac_address)
         return None
-    except TimeoutError:
-        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except TimeoutError as error:
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION from error
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.put(
@@ -127,11 +131,13 @@ async def sth_connect(
     },
 )
 async def sth_disconnect(system: ICOsystem = Depends(get_system)) -> None:
+    """Disconnect from sensor node"""
+
     try:
         await disconnect_sth_devices(system)
         return None
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.put(
@@ -145,12 +151,14 @@ async def sth_disconnect(system: ICOsystem = Depends(get_system)) -> None:
 async def sth_rename(
     device_info: STHRenameRequestModel, system: ICOsystem = Depends(get_system)
 ) -> STHRenameResponseModel:
+    """Rename sensor node"""
+
     try:
         return await rename_sth_device(system, device_info.mac_address, device_info.new_name)
-    except TimeoutError:
-        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except TimeoutError as error:
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION from error
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.get(
@@ -201,14 +209,16 @@ async def sth_rename(
     },
 )
 async def read_adc(system: ICOsystem = Depends(get_system)) -> ADCValues:
+    """Read ADC configuration"""
+
     try:
         values = await read_sth_adc(system)
         if values is not None:
             return ADCValues(**values)
-        else:
-            raise HTTP_404_STH_UNREACHABLE_EXCEPTION
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
 
 
 @router.put(
@@ -220,10 +230,12 @@ async def read_adc(system: ICOsystem = Depends(get_system)) -> ADCValues:
     },
 )
 async def write_adc(config: ADCValues, system: ICOsystem = Depends(get_system)) -> None:
+    """Write ADC configuration"""
+
     try:
         await write_sth_adc(system, config)
         return None
-    except TimeoutError:
-        raise HTTP_404_STH_UNREACHABLE_EXCEPTION
-    except NoResponseError:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION
+    except TimeoutError as error:
+        raise HTTP_404_STH_UNREACHABLE_EXCEPTION from error
+    except NoResponseError as error:
+        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
