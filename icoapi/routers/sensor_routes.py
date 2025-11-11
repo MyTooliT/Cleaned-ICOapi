@@ -1,3 +1,5 @@
+"""Routes for sensor information"""
+
 from fastapi import APIRouter, status
 
 from icoapi.models.models import AvailableSensorInformation
@@ -12,6 +14,8 @@ router = APIRouter(prefix="/sensor", tags=["Sensor"])
     response_model=AvailableSensorInformation,
 )
 def query_sensors():
+    """Get available sensors"""
+
     sensors, configs, default = get_sensor_config_data()
     return AvailableSensorInformation(
         sensors=sensors, configurations=configs, default_configuration_id=default
