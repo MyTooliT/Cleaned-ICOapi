@@ -1,3 +1,5 @@
+"""File handling code"""
+
 import logging
 import os
 import platform
@@ -16,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def load_env_file():
+    """Load environment configuration"""
+
     # First try: local development
     env_loaded = load_dotenv(
         os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "config", ".env"),
@@ -24,16 +28,16 @@ def load_env_file():
     if not env_loaded:
         # Second try: configs directory
         logger.warning(
-            "Environment variables not found in local directory. Trying to load from"
-            f" app data: {get_config_dir()}"
+            "Environment variables not found in local directory. Trying to load from app data: %s",
+            get_config_dir(),
         )
         env_loaded = load_dotenv(os.path.join(get_config_dir(), ".env"), verbose=True)
     if not env_loaded and is_bundled():
         # Third try: we should be in the bundled state
-        bundle_dir = sys._MEIPASS
+        bundle_dir = sys._MEIPASS  # pylint: disable=protected-access
         logger.warning(
-            "Environment variables not found in local directory. Trying to load from"
-            f" app data: {bundle_dir}"
+            "Environment variables not found in local directory. Trying to load from app data: %s",
+            bundle_dir,
         )
         env_loaded = load_dotenv(os.path.join(bundle_dir, "config", ".env"), verbose=True)
     if not env_loaded:
@@ -42,48 +46,66 @@ def load_env_file():
 
 
 def is_bundled():
+    """Check if in bundled state"""
+
     return getattr(sys, "frozen", False)
 
 
 def get_application_dir() -> str:
+    """Get application directory"""
+
     name = os.getenv("VITE_APPLICATION_FOLDER", "ICOdaq")
     return user_data_dir(name, appauthor=False)
 
 
 def get_measurement_dir() -> str:
+    """Get measurement directory"""
+
     measurement_dir = os.path.join(get_application_dir(), "measurements")
-    logger.info(f"Measurement directory: {measurement_dir}")
+    logger.info("Measurement directory: %s", measurement_dir)
     return measurement_dir
 
 
 def get_config_dir() -> str:
+    """Get configuration directory"""
+
     config_dir = os.path.join(get_application_dir(), "config")
-    logger.info(f"Config directory: {config_dir}")
+    logger.info("Config directory: %s", config_dir)
     return config_dir
 
 
 def get_dataspace_file_path() -> str:
+    """Get dataspace configuration path"""
+
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.DATASPACE.filename)
 
 
 def get_sensors_file_path() -> str:
+    """Get path to sensor configuration file"""
+
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.SENSORS.filename)
 
 
 def get_metadata_file_path() -> str:
+    """Get path of metadata configuration"""
+
     return os.path.join(get_config_dir(), CONFIG_FILE_DEFINITIONS.METADATA.filename)
 
 
 def copy_config_files_if_not_exists(src_path: str, dest_path: str):
+    """Copy configuration file, if it does not exist yet"""
+
     for f in os.listdir(src_path):
         if os.path.isfile(os.path.join(dest_path, f)):
-            logger.info(f"Config file {f} already exists in {dest_path}")
+            logger.info("Config file %s already exists in %s", f, dest_path)
         else:
             shutil.copy(os.path.join(src_path, f), os.path.join(dest_path, f))
-            logger.info(f"Copied config file {f} to {dest_path}")
+            logger.info("Copied config file %s to %s", f, dest_path)
 
 
 def tries_to_traverse_directory(received_filename: str | os.PathLike) -> bool:
+    """Check if a received filename tries to traverse the dir hierarchy"""
+
     directory_traversal_linux_chars = ["/", "%2F"]
     directory_traversal_windows_chars = ["\\", "%5C"]
     forbidden_substrings = [
@@ -118,24 +140,30 @@ def is_dangerous_filename(filename: str) -> Tuple[bool, str | None]:
 
 
 def get_disk_space_in_gb(path_or_drive: str | os.PathLike = "/") -> DiskCapacity:
+    """Get disk space in Gigabyte"""
+
     try:
-        total, used, free = shutil.disk_usage(path_or_drive)
+        total, _, free = shutil.disk_usage(path_or_drive)
 
         total_gb = round(total / (2**30), 2)
         available_gb = round(free / (2**30), 2)
 
         return DiskCapacity(total_gb, available_gb)
-    except Exception as e:
-        logger.error(f"Error retrieving disk space: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("Error retrieving disk space: %s", e)
         return DiskCapacity(None, None)
 
 
 def get_drive_or_root_path() -> str:
+    """Get root of filesystem"""
+
     os_type = platform.system()
     return "C:\\" if os_type == "Windows" else "/"
 
 
 def get_suffixed_filename(base_name: str, directory: str) -> str:
+    """Get suffixed filename"""
+
     possible_filename = base_name
     suffix: int = 0
     while possible_filename in os.listdir(directory):
@@ -153,6 +181,8 @@ def get_suffixed_filename(base_name: str, directory: str) -> str:
 
 
 def ensure_folder_exists(path):
+    """Create folder if it does not exist already"""
+
     if not os.path.exists(path):
         os.makedirs(path)
-        logger.info(f"Created directory {path}")
+        logger.info("Created directory %s", path)
