@@ -1,3 +1,5 @@
+"""Helper code for handling configuration files"""
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,19 +44,28 @@ PathLike = Union[str, Path]
 
 @dataclass
 class ConfigFileDescription:
+    """Description of configuration file endpoint"""
+
     endpoint: str
     title: str
     description: str
     filename: str
 
 
+# pylint: disable=invalid-name
+
+
 @dataclass
 class ConfigFileDefinition:
+    """Configuration file definition"""
+
     ENV: ConfigFileDescription
     METADATA: ConfigFileDescription
     SENSORS: ConfigFileDescription
     DATASPACE: ConfigFileDescription
 
+
+# pylint: enable=invalid-name
 
 CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
     ENV=ConfigFileDescription(
@@ -89,10 +100,14 @@ CONFIG_FILE_DEFINITIONS = ConfigFileDefinition(
 
 
 def is_valid_string(value: Any) -> bool:
+    """Test if ``value`` is a non-empty string"""
+
     return bool(value.strip()) if isinstance(value, str) else False
 
 
 def validate_yaml_info_header(payload: Any) -> list[str]:
+    """Validate YAML information header"""
+
     errors: list[str] = []
     info = payload.get("info")
     if not isinstance(info, dict):
@@ -127,6 +142,8 @@ def validate_yaml_info_header(payload: Any) -> list[str]:
 
 
 def validate_metadata_payload(payload: Any) -> list[str]:
+    """Validate metadata payload"""
+
     if not isinstance(payload, dict):
         return ["Root document must be a mapping"]
 
@@ -147,6 +164,8 @@ def validate_metadata_payload(payload: Any) -> list[str]:
 
 
 def validate_profile(profile_key: str, profile_value: dict) -> list[str]:
+    """Validate profile data"""
+
     path_prefix = f"profiles -> {profile_key}"
     errors: list[str] = []
 
@@ -171,6 +190,8 @@ def validate_profile(profile_key: str, profile_value: dict) -> list[str]:
 
 
 def validate_sections(section: dict, path: list[str], errors: list[str]) -> None:
+    """Validate profile sections"""
+
     if not isinstance(section, dict):
         errors.append(" -> ".join(path) + ": expected mapping")
         return
@@ -191,10 +212,14 @@ def validate_sections(section: dict, path: list[str], errors: list[str]) -> None
 
 
 def is_field_definition(value: dict[str, Any]) -> bool:
+    """Check if dictionary contains only valid field definition keys"""
+
     return FIELD_DEFINITION_REQUIRED_KEYS.issubset(value.keys())
 
 
 def validate_field_definition(field: dict[str, Any], path: list[str], errors: list[str]) -> None:
+    """Validate field definition"""
+
     for key in FIELD_DEFINITION_REQUIRED_KEYS:
         field_value = field.get(key)
         if not isinstance(field_value, str) or not field_value.strip():
@@ -205,7 +230,12 @@ def validate_field_definition(field: dict[str, Any], path: list[str], errors: li
         errors.append(" -> ".join(path + ["options"]) + ": expected list when provided")
 
 
+# pylint: disable=too-many-branches, too-many-locals, too-many-statements
+
+
 def validate_sensors_payload(payload: Any) -> list[str]:
+    """Validate sensor config data"""
+
     if not isinstance(payload, dict):
         return ["Root document must be a mapping"]
 
@@ -304,7 +334,12 @@ def validate_sensors_payload(payload: Any) -> list[str]:
     return errors
 
 
+# pylint: enable=too-many-branches, too-many-locals, too-many-statements
+
+
 def validate_dataspace_payload(payload: Any) -> list[str]:
+    """Validate dataspace configuration"""
+
     if not isinstance(payload, dict):
         return ["Root document must be a mapping"]
 
@@ -338,6 +373,7 @@ def validate_dataspace_payload(payload: Any) -> list[str]:
 def store_config_file(
     content: bytes, config_dir: PathLike, filename: str
 ) -> Tuple[Optional[Path], Path]:
+    """Store configuration file"""
     config_path = Path(config_dir)
     config_path.mkdir(parents=True, exist_ok=True)
 
@@ -349,6 +385,8 @@ def store_config_file(
 
 
 def move_file_to_backup(file_path: Path) -> Path:
+    """Move config file to backup"""
+
     backup_dir = file_path.parent / CONFIG_BACKUP_DIRNAME
     backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -360,6 +398,8 @@ def move_file_to_backup(file_path: Path) -> Path:
 
 
 def build_backup_path(backup_dir: Path, filename: str, timestamp: str) -> Path:
+    """Get backup path"""
+
     base_name, suffix = split_base_and_suffix(filename)
     backup_path = backup_dir / f"{base_name}__{timestamp}{suffix}"
 
@@ -372,6 +412,8 @@ def build_backup_path(backup_dir: Path, filename: str, timestamp: str) -> Path:
 
 
 def split_base_and_suffix(filename: str) -> tuple[str, str]:
+    """Return basename and suffix of filename"""
+
     path = Path(filename)
     suffix = "".join(path.suffixes)
     if suffix:
@@ -384,28 +426,35 @@ def split_base_and_suffix(filename: str) -> tuple[str, str]:
 
 
 def parse_info_header_from_file(config_file: Path) -> ConfigFileInfoHeader | None:
-    if config_file.suffix == ".yaml":
-        with open(config_file, "r") as f:
-            content = yaml.safe_load(f)
-            errors = validate_yaml_info_header(content)
-            if len(errors) > 0:
-                return None
-            else:
-                info = content.get("info")
-                return ConfigFileInfoHeader(
-                    schema_name=info.get("schema_name"),
-                    schema_version=info.get("schema_version"),
-                    config_name=info.get("config_name"),
-                    config_date=info.get("config_date"),
-                    config_version=info.get("config_version"),
-                )
-    else:
+    """Get config file header information from config file"""
+
+    if not config_file.suffix == ".yaml":
         return None
+
+    with open(config_file, "r", encoding="utf-8") as f:
+        content = yaml.safe_load(f)
+        errors = validate_yaml_info_header(content)
+        if len(errors) > 0:
+            return None
+
+        info = content.get("info")
+        return ConfigFileInfoHeader(
+            schema_name=info.get("schema_name"),
+            schema_version=info.get("schema_version"),
+            config_name=info.get("config_name"),
+            config_date=info.get("config_date"),
+            config_version=info.get("config_version"),
+        )
+
+
+# pylint: disable=too-many-locals
 
 
 def list_config_backups(
     config_dir: PathLike, filename: str
 ) -> list[tuple[str, str, ConfigFileInfoHeader | None]]:
+    """List configuration backups"""
+
     config_path = Path(config_dir)
     backup_dir = config_path / CONFIG_BACKUP_DIRNAME
     if not backup_dir.is_dir():
@@ -445,7 +494,12 @@ def list_config_backups(
     return entries
 
 
+# pylint: enable=too-many-locals
+
+
 def is_backup_file_for(filename: str, backup_filename: str) -> bool:
+    """Check if a file is a backup file of another config file"""
+
     base_name, suffix = split_base_and_suffix(filename)
     backup_base, backup_suffix = split_base_and_suffix(backup_filename)
 
