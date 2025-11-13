@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from icostate import ICOsystem
 from icotronic.can.error import ErrorResponseError, NoResponseError
+
 from icoapi.models.models import STUDeviceResponseModel
 from icoapi.models.globals import MeasurementState, get_measurement_state, get_system
 from icoapi.scripts.stu_scripts import reset_stu, get_stu
@@ -65,9 +66,5 @@ async def stu_connected(system: ICOsystem = Depends(get_system)):
 
     try:
         return await system.is_sensor_node_connected()
-    except NoResponseError as error:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
-    except ErrorResponseError as error:
-        raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
-    except AttributeError as error:
+    except (AttributeError, ErrorResponseError, NoResponseError) as error:
         raise HTTP_502_CAN_NO_RESPONSE_EXCEPTION from error
