@@ -1,24 +1,26 @@
+"""Code for handling measurement data"""
+
 import asyncio
 import json
+import logging
 import os
 from pathlib import Path
-import logging
-import numpy as np
 
-import tables.exceptions
+from icolyzer import iftlibrary
 from icostate import ICOsystem
-from icotronic.can.error import UnsupportedFeatureException
 from icotronic.can.adc import ADCConfiguration
+from icotronic.can.error import NoResponseError
+from icotronic.can.error import UnsupportedFeatureException
+from icotronic.can.sensor import SensorConfiguration
 from icotronic.can.streaming import (
     StreamingConfiguration,
     StreamingData,
     StreamingTimeoutError,
 )
-from icotronic.can.sensor import SensorConfiguration
 from icotronic.measurement import Storage, StorageData
-from icolyzer import iftlibrary
+import numpy as np
 from starlette.websockets import WebSocketDisconnect
-from icotronic.can.error import NoResponseError
+import tables.exceptions
 
 from icoapi.models.models import ADCValues
 from icoapi.scripts.data_handling import (
@@ -72,7 +74,7 @@ async def setup_adc(system: ICOsystem, instructions: MeasurementInstructions) ->
         logger.warning("No response from CAN bus - ADC configuration not written")
 
     sample_rate = adc_config.sample_rate()
-    logger.info(f"Sample Rate: {sample_rate} Hz")
+    logger.info("Sample Rate: %s Hz", sample_rate)
 
     return sample_rate
 
@@ -151,7 +153,9 @@ async def send_ift_values(
     instructions: MeasurementInstructions,
     measurement_state: MeasurementState,
 ) -> None:
-    logger.debug(f"IFT value computation requested for channel: <{instructions.ift_channel}>")
+    """Calculate and send IFT values"""
+
+    logger.debug("IFT value computation requested for channel: <%s>", instructions.ift_channel)
 
     assert isinstance(instructions.adc, ADCValues)
     assert isinstance(instructions.adc.prescaler, int)
@@ -181,8 +185,10 @@ async def send_ift_values(
     if ift_values is None:
         logger.info(
             "No IFT value could be calculated with window length"
-            f" {instructions.ift_window_width}ms, {len(timestamps)} timestamps and"
-            f" {len(values)} values."
+            " %sms, %s timestamps and %s values.",
+            instructions.ift_window_width,
+            len(timestamps),
+            len(values),
         )
         return
 
@@ -198,25 +204,29 @@ async def send_ift_values(
     for client in measurement_state.clients:
         try:
             await client.send_json([ift_wrapped.model_dump()])
-            logger.debug(f"Sent IFT value to client <{client.client}>")
+            logger.debug("Sent IFT value to client <%s>", client.client)
         except RuntimeError:
             logger.warning("Client must be disconnected, passing")
 
 
 def write_metadata(prefix: MetadataPrefix, metadata: Metadata, storage: StorageData) -> None:
+    """Write metadata to storage object"""
+
     picture_parameters = find_picture_parameters(metadata)
     if picture_parameters and len(picture_parameters) > 0:
         write_and_remove_picture_metadata(prefix, picture_parameters, metadata, storage)
 
     meta_dump = json.dumps(metadata.__dict__, default=lambda o: o.__dict__)
     storage[f"{prefix}_metadata"] = meta_dump
-    logger.info(f"Added {prefix}-measurement metadata")
+    logger.info("Added %s-measurement metadata", prefix)
 
 
 def find_picture_parameters(meta: Metadata) -> list[str]:
+    """Find picture parameters in metadata"""
+
     picture_parameters = []
     if meta.parameters:
-        for key, value in meta.parameters.items():
+        for key, _ in meta.parameters.items():
             if "picture" in key:
                 picture_parameters.append(key)
     return picture_parameters
@@ -228,6 +238,8 @@ def write_and_remove_picture_metadata(
     meta: Metadata,
     storage: StorageData,
 ):
+    """Write picture metadata to storage and remove it from metadata"""
+
     for param in picture_parameters:
         encoded_images: list[str] = []
         for encoded_image in meta.parameters[param].values():  # type: ignore[union-attr]
@@ -238,21 +250,23 @@ def write_and_remove_picture_metadata(
 
         try:
             write_image_array(storage, f"{prefix}__{param}", nd_array, True)
-            logger.info(f"Added {len(nd_array)} picture(s) for parameter {param} to storage")
+            logger.info("Added %s picture(s) for parameter %s to storage", len(nd_array), param)
             del meta.parameters[param]
         except ValueError:
-            logger.warning(f"Could not add pictures for parameter {param} to storage")
+            logger.warning("Could not add pictures for parameter %s to storage", param)
         except tables.exceptions.NodeError:
             storage.hdf.remove_node("/", f"{prefix}__{param}", recursive=True)
             logger.info(
-                f"Removed {param} image array from storage root node as it is being overwritten."
+                "Removed %s image array from storage root node as it is being overwritten.", param
             )
             write_image_array(storage, f"{prefix}__{param}", nd_array, True)
-            logger.info(f"Added {len(nd_array)} picture(s) for parameter {param} to storage")
+            logger.info("Added %s picture(s) for parameter %s to storage", len(nd_array), param)
             del meta.parameters[param]
 
 
 def write_image_array(storage: StorageData, name: str, array: np.ndarray, overwrite: bool):
+    """Add image array to storage data"""
+
     try:
         storage.hdf.create_array(storage.hdf.root, name, array)
     except tables.exceptions.NodeError:
@@ -266,6 +280,8 @@ def get_sendable_data_and_apply_conversion(
     sensor_info: MeasurementSensorInfo,
     data: StreamingData,
 ) -> DataValueModel:
+    """Convert measurement data from raw to physical value"""
+
     (
         first_channel_sensor,
         second_channel_sensor,
@@ -322,18 +338,25 @@ def get_sendable_data_and_apply_conversion(
     return data_to_send
 
 
+# pylint: disable=too-many-branches, too-many-locals, too-many-statements
+
+
 async def run_measurement(
     system: ICOsystem,
     instructions: MeasurementInstructions,
     measurement_state: MeasurementState,
     general_messenger: GeneralMessenger,
 ) -> None:
+    """Run measurement"""
+
     # Write ADC configuration to the holder
     sample_rate = await setup_adc(system, instructions)
 
     # Create a SensorConfiguration and a StreamingConfiguration object
-    # `SensorConfiguration` sets which sensor channels map to the measurement channels, e.g., that 'first' -> channel 3.
-    # `StreamingConfiguration sets the active channels based on if the channel number is > 0.`
+    # `SensorConfiguration` sets which sensor channels map to the measurement
+    # channels, e.g., that 'first' -> channel 3.
+    # `StreamingConfiguration sets the active channels based on if the channel
+    # number is > 0.`
     sensor_configuration = SensorConfiguration(
         instructions.first.channel_number,
         instructions.second.channel_number,
@@ -346,8 +369,9 @@ async def run_measurement(
     # Write sensor configuration to the holder if possible / necessary.
     await write_sensor_config_if_required(system, sensor_configuration)
 
-    # NOTE: The array data.values only contains the activated channels. This means we need to compute the
-    #       index at which each channel is located. This may not be pretty, but it works.
+    # NOTE: The array data.values only contains the activated channels. This
+    # means we need to compute the index at which each channel is located.
+    # This may not be pretty, but it works.
     [first_index, second_index, third_index] = get_measurement_indices(streaming_configuration)
 
     timestamps: list[float] = []
@@ -358,7 +382,7 @@ async def run_measurement(
     try:
         with Storage(measurement_file_path, streaming_configuration) as storage:
 
-            logger.info(f"Opened measurement file: <{measurement_file_path}> for writing")
+            logger.info("Opened measurement file: <%s> for writing", measurement_file_path)
 
             storage["conversion"] = "true"
             assert isinstance(instructions.adc, ADCValues)
@@ -370,18 +394,15 @@ async def run_measurement(
 
             async with system.sensor_node.open_data_stream(streaming_configuration) as stream:
 
-                logger.info(f"Opened measurement stream: <{measurement_file_path}>")
+                logger.info("Opened measurement stream: <%s>", measurement_file_path)
 
                 counter: int = 0
                 data_collected_for_send: list = []
 
                 sensor_info = MeasurementSensorInfo(instructions)
-                (
-                    first_channel_sensor,
-                    second_channel_sensor,
-                    third_channel_sensor,
-                    voltage_scaling,
-                ) = sensor_info.get_values()
+                (first_channel_sensor, second_channel_sensor, third_channel_sensor, _) = (
+                    sensor_info.get_values()
+                )
                 add_sensor_data_to_storage(
                     storage,
                     [first_channel_sensor, second_channel_sensor, third_channel_sensor],
@@ -390,37 +411,39 @@ async def run_measurement(
                 if streaming_configuration.first:
                     if not streaming_configuration.second and not streaming_configuration.third:
                         logger.info(
-                            "Running in single channel mode with sensor"
-                            f" {sensor_configuration.first}."
+                            "Running in single channel mode with sensor %s.",
+                            sensor_configuration.first,
                         )
 
                     elif streaming_configuration.second and not streaming_configuration.third:
                         logger.info(
-                            "Running in dual channel mode with channels 1 (Sensor"
-                            f" {sensor_configuration.first}) and 2 (Sensor"
-                            f" {sensor_configuration.second})."
+                            "Running in dual channel mode with channels 1 "
+                            "(Sensor %s) and 2 (Sensor %s).",
+                            sensor_configuration.first,
+                            sensor_configuration.second,
                         )
 
                     elif not streaming_configuration.second and streaming_configuration.third:
                         logger.info(
-                            "Running in dual channel mode with channels 1 (Sensor"
-                            f" {sensor_configuration.first}) and 3 (Sensor"
-                            f" {sensor_configuration.third})."
+                            "Running in dual channel mode with channels 1 "
+                            "(Sensor %s) and 3 (Sensor %s).",
+                            sensor_configuration.first,
+                            sensor_configuration.third,
                         )
 
                     else:
                         logger.info(
-                            "Running in triple channel mode with sensors"
-                            f" {sensor_configuration.first},"
-                            f" {sensor_configuration.second} and"
-                            f" {sensor_configuration.third}."
+                            "Running in triple channel mode with sensors %s, %s and %s.",
+                            sensor_configuration.first,
+                            sensor_configuration.second,
+                            sensor_configuration.third,
                         )
 
                 async for data, _ in stream:
 
                     if start_time == 0:
                         start_time = data.timestamp
-                        logger.debug(f"Set measurement start time to {start_time}")
+                        logger.debug("Set measurement start time to %s", start_time)
 
                     # Convert timestamp to seconds since measurement start
                     data.timestamp = data.timestamp - start_time
@@ -441,12 +464,12 @@ async def run_measurement(
                     )
                     storage.add_streaming_data(data)
 
-                    if counter >= (sample_rate // int(os.getenv("WEBSOCKET_UPDATE_RATE", 60))):
+                    if counter >= (sample_rate // int(os.getenv("WEBSOCKET_UPDATE_RATE", "60"))):
                         for client in measurement_state.clients:
                             try:
                                 await client.send_json(data_collected_for_send)
                             except RuntimeError:
-                                logger.warning(f"Failed to send data to client <{client.client}>")
+                                logger.warning("Failed to send data to client <%s>", client.client)
                         data_collected_for_send.clear()
                         counter = 0
                     else:
@@ -462,8 +485,9 @@ async def run_measurement(
                         if data.timestamp - timestamps[0] >= instructions.time:
                             logger.info(
                                 "Timeout reached at with current being"
-                                f" <{data.timestamp}> and first entry being"
-                                f" {timestamps[0]}s"
+                                " <%s> and first entry being %ss",
+                                data.timestamp,
+                                timestamps[0],
                             )
                             break
 
@@ -514,20 +538,24 @@ async def run_measurement(
         measurement_state.clients.clear()
     except asyncio.CancelledError as e:
         logger.debug(
-            f"Measurement cancelled. IFT: requested <{instructions.ift_requested}> |"
-            f" already sent: <{ift_sent}>"
+            "Measurement cancelled. IFT: requested <%s> | already sent: <%s>",
+            instructions.ift_requested,
+            ift_sent,
         )
         if instructions.ift_requested and not ift_sent:
             await send_ift_values(timestamps, ift_relevant_channel, instructions, measurement_state)
         raise asyncio.CancelledError from e
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error("Unhandled measurement error - stacktrace below")
         logger.error(e)
     finally:
         clients = len(measurement_state.clients)
         for client in measurement_state.clients:
             await client.close()
-        logger.info(f"Ended measurement and cleared {clients} clients")
+        logger.info("Ended measurement and cleared %s clients", clients)
         await measurement_state.reset()
+
+
+# pylint: enable=too-many-branches, too-many-locals, too-many-statements
