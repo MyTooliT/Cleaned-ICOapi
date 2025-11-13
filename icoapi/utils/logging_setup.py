@@ -1,16 +1,20 @@
+"""Logging setup code"""
+
+import asyncio
 import logging
 import os
 import re
-from datetime import datetime
-from typing import List, Optional
-from fastapi import WebSocket
-import asyncio
 import sys
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
+from typing import List, Optional
+
 import orjson
 from colorlog import ColoredFormatter
-from logging.handlers import RotatingFileHandler
-from icoapi.scripts.file_handling import load_env_file
+from fastapi import WebSocket
 from platformdirs import user_data_dir
+
+from icoapi.scripts.file_handling import load_env_file
 
 log_watchers: List[WebSocket] = []
 log_queue: asyncio.Queue[str] = asyncio.Queue()
@@ -21,14 +25,16 @@ log_level = os.getenv("LOG_LEVEL")
 LOG_LEVEL = "" if log_level is None else log_level.upper()
 LOG_USE_JSON = os.getenv("LOG_USE_JSON", "0") == "1"
 LOG_USE_COLOR = os.getenv("LOG_USE_COLOR", "0") == "1"
-LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", 5 * 1024 * 1024))
-LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
+LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(5 * 1024 * 1024)))
+LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 LOG_NAME_WITHOUT_EXTENSION = os.getenv("LOG_NAME_WITHOUT_EXTENSION", "icodaq")
 LOG_NAME = f"{LOG_NAME_WITHOUT_EXTENSION}.log"
 LOG_LEVEL_UVICORN = os.getenv("LOG_LEVEL_UVICORN", "INFO")
 
 
 def get_default_log_path() -> str:
+    """Get default log path"""
+
     app_folder = os.getenv("VITE_BACKEND_MEASUREMENT_DIR", "ICOdaq")
     file_name = "icodaq.log"
     base = user_data_dir(app_folder, appauthor=False)
@@ -41,6 +47,8 @@ LOG_PATH = os.getenv("LOG_PATH", get_default_log_path())
 
 
 class JSONFormatter(logging.Formatter):
+    """Log formatter for JSON output"""
+
     def format(self, record: logging.LogRecord) -> str:
         log_data = {
             "timestamp": self.formatTime(record),
@@ -48,29 +56,35 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        return orjson.dumps(log_data).decode("utf-8")
+        return orjson.dumps(log_data).decode("utf-8")  # pylint: disable=no-member
 
 
 class WebSocketLogHandler(logging.Handler):
+    """Handler for emitting log data via WebSocket"""
+
     def emit(self, record: logging.LogRecord):
         try:
             message = self.format(record)
             log_queue.put_nowait(message)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
 
 async def log_broadcaster():
+    """Broadcast log data to all WebSockets in log queue"""
+
     while True:
         message = await log_queue.get()
         for ws in list(log_watchers):
             try:
                 await ws.send_text(message)
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 log_watchers.remove(ws)
 
 
 def setup_logging() -> None:
+    """Set up logging facility"""
+
     root_logger = logging.getLogger()
     root_logger.setLevel(LOG_LEVEL)
 
@@ -119,6 +133,8 @@ def setup_logging() -> None:
 
 
 def parse_timestamps(lines: list[str]) -> tuple[Optional[str], Optional[str]]:
+    """Parse logger timestamps"""
+
     ts_pattern = re.compile(r"(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})")
     timestamps = []
     for line in lines:
